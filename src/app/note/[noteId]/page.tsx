@@ -50,11 +50,11 @@ export default async function NotePage({ params }: NotePageProps) {
         </header>
 
         {isGoogleDriveUrl ? (
-            <div className="mb-6 h-[100vh]">
+            <div className="mb-6 h-[200vh]">
               <iframe src={googleDriveEmbedUrl} width="100%" height="100%" frameBorder="0"></iframe>
             </div>
           ) : note.pdf_url ? (
-            <div className="mb-6 h-[100vh]">
+            <div className="mb-6 h-[200vh]">
               <PdfViewer fileUrl={note.pdf_url} />
             </div>
           ) : null}
