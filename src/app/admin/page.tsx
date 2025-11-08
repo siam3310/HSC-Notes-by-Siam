@@ -253,5 +253,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-export const revalidate = 0;
