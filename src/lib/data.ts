@@ -52,3 +52,17 @@ export async function getNoteById(noteId: number): Promise<Note | null> {
 
   return data as Note;
 }
+
+export async function getNotes(): Promise<Note[]> {
+    const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching all notes:', error);
+        return [];
+    }
+
+    return data as Note[];
+}

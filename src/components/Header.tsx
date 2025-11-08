@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Shield } from 'lucide-react';
 
 export function Header() {
   return (
@@ -16,6 +16,10 @@ export function Header() {
             </Link>
             <Link href="/subjects" className="text-foreground/80 hover:text-foreground transition-colors">
               Subjects
+            </Link>
+            <Link href="/admin" className="flex items-center gap-2 text-foreground/80 hover:text-foreground transition-colors">
+              <Shield className="h-4 w-4" />
+              Admin
             </Link>
           </nav>
         </div>

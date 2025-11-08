@@ -35,12 +35,11 @@ This schema includes:
 
 ## 3. Row Level Security (RLS) Policy
 
-Security is crucial. We need to enable Row Level Security (RLS) on the `notes` table and then create a policy that allows public read access.
+Security is crucial. We need to enable Row Level Security (RLS) on the `notes` table and then create a policy that allows public read access. For the admin panel to work, we also need to allow full access for authenticated users with a `service_role` key. In a real application, you would create a more granular policy, but this is sufficient for now.
 
 ### a. Enable RLS
 
 In the **SQL Editor**, run this command:
-
 ```sql
 ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
 ```
@@ -50,14 +49,26 @@ ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
 Now, create the policy that allows anyone to read (`SELECT`) notes that are marked as `is_published`. This policy **prevents** any anonymous user from inserting, updating, or deleting data.
 
 In the **SQL Editor**, run this command:
-
 ```sql
 CREATE POLICY "Public read access to published notes"
 ON public.notes
 FOR SELECT
-TO anon, authenticated
+TO anon
 USING (is_published = TRUE);
 ```
+
+### c. Create Full Access Policy for Admins
+
+This policy allows users with the `service_role` to perform any action on the notes table. **Important**: You will need to create a separate Supabase client using the `service_role` key for admin actions. For now, we will just read all data.
+
+```sql
+CREATE POLICY "Full access for service role"
+ON public.notes
+FOR ALL
+TO service_role
+USING (true);
+```
+
 
 ## 4. Get Project Credentials
 
@@ -69,3 +80,20 @@ You'll need your Supabase Project URL and the `anon` (public) key to connect you
 4.  You will also find your Project **URL** there.
 
 These will be used as environment variables in your Next.js application.
+
+## 5. (Optional) Add Example Data
+
+To add some example notes to your database, run the following SQL in the **SQL Editor**:
+
+```sql
+INSERT INTO public.notes (subject, chapter_name, topic_title, content_html, is_published)
+VALUES
+('Physics', 'Chapter 1: Physical World and Measurement', 'Units and Measurements', '<h1>Introduction to Units</h1><p>This is a note about the fundamental and derived units in physics.</p>', TRUE),
+('Physics', 'Chapter 1: Physical World and Measurement', 'Errors in Measurement', '<p>Discussing systematic and random errors.</p>', TRUE),
+('Physics', 'Chapter 2: Kinematics', 'Motion in a Straight Line', '<h1>Speed and Velocity</h1><p>Key concepts of kinematics.</p>', TRUE),
+('Chemistry', 'Chapter 1: Some Basic Concepts of Chemistry', 'Mole Concept', '<h1>Avogadros Number</h1><p>The mole is the unit of amount in chemistry.</p>', TRUE),
+('Chemistry', 'Chapter 1: Some Basic Concepts of Chemistry', 'Stoichiometry', '<p>Calculations based on chemical equations.</p>', FALSE),
+('Chemistry', 'Chapter 2: Structure of Atom', 'Bohrs Model', '<h1>Postulates of Bohrs Model</h1><p>Explaining the model of an atom.</p>', TRUE),
+('Math', 'Chapter 1: Sets', 'Introduction to Sets', '<h1>What is a set?</h1><p>A set is a collection of distinct objects.</p>', TRUE),
+('Math', 'Chapter 1: Sets', 'Venn Diagrams', '<p>Visual representation of sets.</p>', TRUE);
+```
