@@ -63,14 +63,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 To add some example notes to your database, run the following SQL in the **SQL Editor**:
 
 ```sql
-INSERT INTO public.notes (subject, chapter_name, topic_title, content_html, is_published)
+INSERT INTO public.notes (subject, chapter_name, topic_title, content_html, pdf_url, is_published)
 VALUES
-('Physics', 'Chapter 1: Physical World and Measurement', 'Units and Measurements', '<h1>Introduction to Units</h1><p>This is a note about the fundamental and derived units in physics.</p>', TRUE),
-('Physics', 'Chapter 1: Physical World and Measurement', 'Errors in Measurement', '<p>Discussing systematic and random errors.</p>', TRUE),
-('Physics', 'Chapter 2: Kinematics', 'Motion in a Straight Line', '<h1>Speed and Velocity</h1><p>Key concepts of kinematics.</p>', TRUE),
-('Chemistry', 'Chapter 1: Some Basic Concepts of Chemistry', 'Mole Concept', '<h1>Avogadros Number</h1><p>The mole is the unit of amount in chemistry.</p>', TRUE),
-('Chemistry', 'Chapter 1: Some Basic Concepts of Chemistry', 'Stoichiometry', '<p>Calculations based on chemical equations.</p>', FALSE),
-('Chemistry', 'Chapter 2: Structure of Atom', 'Bohrs Model', '<h1>Postulates of Bohrs Model</h1><p>Explaining the model of an atom.</p>', TRUE),
-('Math', 'Chapter 1: Sets', 'Introduction to Sets', '<h1>What is a set?</h1><p>A set is a collection of distinct objects.</p>', TRUE),
-('Math', 'Chapter 1: Sets', 'Venn Diagrams', '<p>Visual representation of sets.</p>', TRUE);
+('Physics', 'Chapter 1: Physical World and Measurement', 'Units and Measurements', '<h1>Introduction to Units</h1><p>This is a note about the fundamental and derived units in physics.</p>', 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', TRUE),
+('Physics', 'Chapter 1: Physical World and Measurement', 'Errors in Measurement', '<p>Discussing systematic and random errors.</p>', NULL, TRUE),
+('Physics', 'Chapter 2: Kinematics', 'Motion in a Straight Line', '<h1>Speed and Velocity</h1><p>Key concepts of kinematics.</p>', NULL, TRUE),
+('Chemistry', 'Chapter 1: Some Basic Concepts of Chemistry', 'Mole Concept', '<h1>Avogadros Number</h1><p>The mole is the unit of amount in chemistry.</p>', NULL, TRUE),
+('Chemistry', 'Chapter 1: Some Basic Concepts of Chemistry', 'Stoichiometry', '<p>Calculations based on chemical equations.</p>', NULL, FALSE),
+('Chemistry', 'Chapter 2: Structure of Atom', 'Bohrs Model', '<h1>Postulates of Bohrs Model</h1><p>Explaining the model of an atom.</p>', NULL, TRUE),
+('Math', 'Chapter 1: Sets', 'Introduction to Sets', '<h1>What is a set?</h1><p>A set is a collection of distinct objects.</p>', NULL, TRUE),
+('Math', 'Chapter 1: Sets', 'Venn Diagrams', '<p>Visual representation of sets.</p>', NULL, TRUE);
 ```
