@@ -7,6 +7,8 @@ import {
   SheetContent,
   SheetTrigger,
   SheetClose,
+  SheetHeader,
+  SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -52,6 +54,9 @@ export function Header() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left">
+                <SheetHeader>
+                  <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                </SheetHeader>
                 <nav className="flex flex-col gap-6 text-lg font-medium mt-8">
                   <SheetClose asChild>
                     <Link
@@ -64,7 +69,7 @@ export function Header() {
                   <SheetClose asChild>
                     <Link
                       href="/subjects"
-                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      className="textmuted-foreground hover:text-foreground transition-colors"
                     >
                       Subjects
                     </Link>
