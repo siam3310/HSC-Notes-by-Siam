@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import type { Note } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { useToast } from './ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { createNote, updateNote } from '@/lib/data';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
