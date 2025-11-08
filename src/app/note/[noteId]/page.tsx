@@ -2,8 +2,9 @@ import { getNoteById } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft, Download, ExternalLink } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
+import { Separator } from '@/components/ui/separator';
 
 interface NotePageProps {
   params: {
@@ -43,25 +44,42 @@ export default async function NotePage({ params }: NotePageProps) {
         </header>
 
         {note.pdf_url && (
-          <div className="my-6 text-center">
-            <p className="mb-4 text-muted-foreground">This note is available as a PDF.</p>
-            <a href={note.pdf_url} target="_blank" rel="noopener noreferrer" download>
-              <Button size="lg">
-                <Download className="mr-2 h-5 w-5" />
-                Download PDF
-              </Button>
-            </a>
+          <div className="mb-6">
+            <div className="border rounded-lg overflow-hidden bg-background">
+                <iframe
+                    src={note.pdf_url}
+                    title={note.topic_title}
+                    className="w-full h-[80vh]"
+                    allow="fullscreen"
+                />
+            </div>
+            <div className="mt-4 flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href={note.pdf_url} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open PDF in New Tab
+                </Button>
+                </a>
+                <a href={note.pdf_url} download>
+                <Button>
+                    <Download className="mr-2 h-5 w-5" />
+                    Download PDF
+                </Button>
+                </a>
+            </div>
           </div>
         )}
 
-        {note.content_html && (
+        {sanitizedContent && note.pdf_url && <Separator className="my-8" />}
+
+        {sanitizedContent && (
            <div
             className="prose prose-invert prose-lg max-w-none prose-h1:font-headline prose-h1:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 prose-strong:text-foreground"
             dangerouslySetInnerHTML={{ __html: sanitizedContent }}
           />
         )}
 
-        {!note.pdf_url && !note.content_html && (
+        {!note.pdf_url && !sanitizedContent && (
             <p className="text-muted-foreground text-center py-10">No content available for this note.</p>
         )}
       </article>
