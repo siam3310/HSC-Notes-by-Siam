@@ -68,7 +68,7 @@ To add some example notes to your database, run the following SQL in the **SQL E
 INSERT INTO public.notes (subject, chapter_name, topic_title, content_html, pdf_url, is_published)
 VALUES
 ('Physics', 'Chapter 1: Physical World and Measurement', 'Units and Measurements', '<h1>Introduction to Units</h1><p>This is a note about the fundamental and derived units in physics.</p>', 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', TRUE),
-('Physics', 'Chapter 1: Physical World and Measurement', 'Errors in Measurement', '<p>Discussing systematic and random errors.</p>', NULL, TRUE),
+('Physics', 'Chapter 1: Physical World and Measurement', 'Errors in Measurement', '<p>Discussing systematic and random errors.</p>', 'https://drive.google.com/file/d/1Rp7-NdDHeRtdva1uz6q3T7qe0n0bPkNq/view', TRUE),
 ('Physics', 'Chapter 2: Kinematics', 'Motion in a Straight Line', '<h1>Speed and Velocity</h1><p>Key concepts of kinematics.</p>', NULL, TRUE),
 ('Chemistry', 'Chapter 1: Some Basic Concepts of Chemistry', 'Mole Concept', '<h1>Avogadros Number</h1><p>The mole is the unit of amount in chemistry.</p>', NULL, TRUE),
 ('Chemistry', 'Chapter 1: Some Basic Concepts of Chemistry', 'Stoichiometry', '<p>Calculations based on chemical equations.</p>', NULL, FALSE),

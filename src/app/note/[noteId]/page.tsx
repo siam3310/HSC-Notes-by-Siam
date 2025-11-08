@@ -2,7 +2,7 @@ import { getNoteById } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Download, ExternalLink } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import { Separator } from '@/components/ui/separator';
 import { PdfViewer } from '@/components/PdfViewer';
@@ -28,6 +28,10 @@ export default async function NotePage({ params }: NotePageProps) {
   
   const sanitizedContent = note.content_html ? DOMPurify.sanitize(note.content_html) : '';
 
+  const isGoogleDriveUrl = note.pdf_url && note.pdf_url.includes('drive.google.com');
+  const googleDriveEmbedUrl = isGoogleDriveUrl ? note.pdf_url?.replace('/view', '/preview') : '';
+
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
@@ -45,11 +49,15 @@ export default async function NotePage({ params }: NotePageProps) {
           <h1 className="text-3xl md:text-4xl font-bold mt-2 font-headline">{note.topic_title}</h1>
         </header>
 
-        {note.pdf_url && (
-          <div className="mb-6 h-[80vh]">
-            <PdfViewer fileUrl={note.pdf_url} />
-          </div>
-        )}
+        {isGoogleDriveUrl ? (
+            <div className="mb-6 h-[80vh]">
+              <iframe src={googleDriveEmbedUrl} width="100%" height="100%" frameBorder="0"></iframe>
+            </div>
+          ) : note.pdf_url ? (
+            <div className="mb-6 h-[80vh]">
+              <PdfViewer fileUrl={note.pdf_url} />
+            </div>
+          ) : null}
 
         {sanitizedContent && note.pdf_url && <Separator className="my-8" />}
 
