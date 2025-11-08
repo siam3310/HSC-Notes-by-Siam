@@ -36,7 +36,7 @@ export default async function NotePage({ params }: NotePageProps) {
         </Link>
       </div>
       
-      <article className="bg-card p-6 sm:p-8 rounded-lg shadow-sm">
+      <article className="bg-card p-6 sm:p-8 rounded-lg border">
         <header className="border-b pb-4 mb-6">
           <p className="text-sm text-muted-foreground">{note.subject} &gt; {note.chapter_name}</p>
           <h1 className="text-3xl md:text-4xl font-bold mt-2 font-headline">{note.topic_title}</h1>
@@ -56,7 +56,7 @@ export default async function NotePage({ params }: NotePageProps) {
 
         {note.content_html && (
            <div
-            className="prose prose-lg max-w-none prose-h1:font-headline prose-h1:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 prose-strong:text-foreground"
+            className="prose prose-invert prose-lg max-w-none prose-h1:font-headline prose-h1:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 prose-strong:text-foreground"
             dangerouslySetInnerHTML={{ __html: sanitizedContent }}
           />
         )}

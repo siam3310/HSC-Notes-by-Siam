@@ -13,7 +13,7 @@ export default async function SubjectsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {subjects.map((subject) => (
             <Link href={`/subject/${encodeURIComponent(subject)}`} key={subject}>
-              <Card className="hover:shadow-lg hover:border-primary transition-all duration-300 group bg-card">
+              <Card className="hover:shadow-lg hover:border-primary/50 transition-all duration-300 group bg-card">
                 <CardHeader>
                   <CardTitle className="flex justify-between items-center text-lg">
                     <span>{subject}</span>

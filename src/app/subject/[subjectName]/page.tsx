@@ -35,13 +35,13 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
       <Accordion type="single" collapsible className="w-full" defaultValue={Object.keys(notesByChapter)[0]}>
         {Object.entries(notesByChapter).map(([chapter, chapterNotes]) => (
           <AccordionItem value={chapter} key={chapter}>
-            <AccordionTrigger className="text-xl font-semibold">{chapter}</AccordionTrigger>
+            <AccordionTrigger className="text-xl font-semibold hover:no-underline">{chapter}</AccordionTrigger>
             <AccordionContent>
               <ul className="flex flex-col gap-2 pt-2">
                 {chapterNotes.map((note) => (
                   <li key={note.id}>
-                    <Link href={`/note/${note.id}`} className="flex items-center gap-3 p-3 rounded-md hover:bg-primary/10 transition-colors">
-                      <FileText className="h-5 w-5 text-primary/80" />
+                    <Link href={`/note/${note.id}`} className="flex items-center gap-3 p-3 rounded-md hover:bg-secondary transition-colors">
+                      <FileText className="h-5 w-5 text-muted-foreground" />
                       <span className="text-foreground/90">{note.topic_title}</span>
                     </Link>
                   </li>

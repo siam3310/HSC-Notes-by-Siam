@@ -5,7 +5,7 @@ import { ArrowRight } from 'lucide-react';
 export default function Home() {
   return (
     <div className="text-center flex flex-col items-center justify-center pt-16 pb-24">
-      <div className="bg-accent/30 rounded-full px-4 py-1 text-sm text-primary font-medium mb-4">
+      <div className="bg-secondary/50 border border-border rounded-full px-4 py-1 text-sm text-foreground/80 font-medium mb-4">
         Your One-Stop Study Hub
       </div>
       <h1 className="text-4xl md:text-6xl font-headline font-bold tracking-tight mb-4 text-foreground">
