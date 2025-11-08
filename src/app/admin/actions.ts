@@ -4,6 +4,21 @@ import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import type { Note } from '@/lib/types';
 
+export async function getNotesAction(): Promise<{ notes: Note[]; error?: string }> {
+    const { data, error } = await supabaseAdmin
+        .from('notes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching notes:', error);
+        return { notes: [], error: error.message };
+    }
+
+    return { notes: data as Note[] };
+}
+
+
 export async function createNoteAction(noteData: Omit<Note, 'id' | 'created_at'>): Promise<{ success: boolean; error?: string }> {
     const { error } = await supabaseAdmin
         .from('notes')

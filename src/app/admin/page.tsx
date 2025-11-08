@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import { getNotes } from '@/lib/data';
 import type { Note } from '@/lib/types';
 import {
   Table,
@@ -29,7 +28,7 @@ import {
 import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { deleteNoteAction, updateNoteAction } from './actions';
+import { deleteNoteAction, updateNoteAction, getNotesAction } from './actions';
 import { useRouter } from 'next/navigation';
 
 const ADMIN_PASSCODE = 'siam3310';
@@ -76,8 +75,17 @@ export default function AdminPage() {
 
   const fetchNotes = async () => {
     setLoading(true);
-    const fetchedNotes = await getNotes();
-    setNotes(fetchedNotes);
+    const result = await getNotesAction();
+    if(result.error) {
+        toast({
+            variant: 'destructive',
+            title: 'Failed to fetch notes',
+            description: result.error,
+        });
+        setNotes([]);
+    } else {
+        setNotes(result.notes);
+    }
     setLoading(false);
   };
 
