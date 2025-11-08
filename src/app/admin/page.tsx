@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getNotes, updateNote, deleteNote } from '@/lib/data';
+import { useState, useEffect, useTransition } from 'react';
+import { getNotes } from '@/lib/data';
 import type { Note } from '@/lib/types';
 import {
   Table,
@@ -25,11 +25,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
+import { deleteNoteAction, updateNoteAction } from './actions';
+import { useRouter } from 'next/navigation';
 
 const ADMIN_PASSCODE = 'siam3310';
 const SESSION_STORAGE_KEY = 'admin_authenticated';
@@ -40,6 +41,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState<Note[]>([]);
   const { toast } = useToast();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     const sessionAuth = sessionStorage.getItem(SESSION_STORAGE_KEY);
@@ -78,40 +81,44 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  const handleTogglePublish = async (note: Note) => {
-    const updatedNote = { ...note, is_published: !note.is_published };
-    const result = await updateNote(note.id, { is_published: updatedNote.is_published });
+  const handleTogglePublish = (note: Note) => {
+    startTransition(async () => {
+      const updatedIsPublished = !note.is_published;
+      const result = await updateNoteAction(note.id, { is_published: updatedIsPublished });
 
-    if (result) {
-      setNotes(notes.map((n) => (n.id === note.id ? updatedNote : n)));
-      toast({
-        title: 'Status Updated',
-        description: `${note.topic_title} is now ${updatedNote.is_published ? 'published' : 'a draft'}.`,
-      });
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Update Failed',
-        description: 'Could not update the note status.',
-      });
-    }
+      if (result.success) {
+        setNotes(notes.map((n) => (n.id === note.id ? { ...n, is_published: updatedIsPublished } : n)));
+        toast({
+          title: 'Status Updated',
+          description: `${note.topic_title} is now ${updatedIsPublished ? 'published' : 'a draft'}.`,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Update Failed',
+          description: result.error || 'Could not update the note status.',
+        });
+      }
+    });
   };
 
-  const handleDelete = async (noteId: number) => {
-    const success = await deleteNote(noteId);
-    if (success) {
-      setNotes(notes.filter((note) => note.id !== noteId));
-      toast({
-        title: 'Note Deleted',
-        description: 'The note has been successfully deleted.',
-      });
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Deletion Failed',
-        description: 'Could not delete the note.',
-      });
-    }
+  const handleDelete = (noteId: number) => {
+    startTransition(async () => {
+      const result = await deleteNoteAction(noteId);
+      if (result.success) {
+        setNotes(notes.filter((note) => note.id !== noteId));
+        toast({
+          title: 'Note Deleted',
+          description: 'The note has been successfully deleted.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Deletion Failed',
+          description: result.error || 'Could not delete the note.',
+        });
+      }
+    });
   };
   
   if (loading && !isAuthenticated) {
@@ -195,6 +202,7 @@ export default function AdminPage() {
                         <Switch
                             checked={note.is_published}
                             onCheckedChange={() => handleTogglePublish(note)}
+                            disabled={isPending}
                             aria-label={`Toggle publish status for ${note.topic_title}`}
                         />
                         <Badge variant={note.is_published ? 'default' : 'secondary'}>
@@ -208,14 +216,14 @@ export default function AdminPage() {
                   <TableCell className="text-right">
                     <div className="flex justify-end items-center gap-2">
                         <Link href={`/admin/edit/${note.id}`}>
-                            <Button variant="ghost" size="icon" aria-label="Edit">
+                            <Button variant="ghost" size="icon" aria-label="Edit" disabled={isPending}>
                                 <Edit className="h-4 w-4" />
                             </Button>
                         </Link>
                          <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete">
-                                    <Trash2 className="h-4 w-4" />
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete" disabled={isPending}>
+                                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>

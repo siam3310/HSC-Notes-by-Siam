@@ -1,5 +1,10 @@
 import { supabase } from './supabase';
+import { supabaseAdmin } from './supabaseAdmin';
 import type { Note } from './types';
+
+// =================================================================
+// PUBLIC-FACING FUNCTIONS (using anon key)
+// =================================================================
 
 export async function getSubjects(): Promise<string[]> {
   const { data, error } = await supabase
@@ -56,9 +61,13 @@ export async function getNoteById(noteId: number): Promise<Note | null> {
 }
 
 
+// =================================================================
+// ADMIN-ONLY FUNCTIONS (using service_role key)
+// =================================================================
+
 // Admin function to get all notes, including drafts
 export async function getNotes(): Promise<Note[]> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('notes')
         .select('*')
         .order('created_at', { ascending: false });
@@ -73,7 +82,7 @@ export async function getNotes(): Promise<Note[]> {
 
 // Admin function to get a single note by ID, including drafts
 export async function getNoteByIdAdmin(noteId: number): Promise<Note | null> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('notes')
     .select('*')
     .eq('id', noteId)
@@ -84,46 +93,4 @@ export async function getNoteByIdAdmin(noteId: number): Promise<Note | null> {
     return null;
   }
   return data as Note;
-}
-
-export async function createNote(noteData: Omit<Note, 'id' | 'created_at'>): Promise<Note | null> {
-    const { data, error } = await supabase
-        .from('notes')
-        .insert([noteData])
-        .select()
-        .single();
-    
-    if (error) {
-        console.error('Error creating note:', error);
-        return null;
-    }
-    return data;
-}
-
-export async function updateNote(id: number, noteData: Partial<Omit<Note, 'id' | 'created_at'>>): Promise<Note | null> {
-    const { data, error } = await supabase
-        .from('notes')
-        .update(noteData)
-        .eq('id', id)
-        .select()
-        .single();
-
-    if (error) {
-        console.error('Error updating note:', error);
-        return null;
-    }
-    return data;
-}
-
-export async function deleteNote(id: number): Promise<boolean> {
-    const { error } = await supabase
-        .from('notes')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-        console.error('Error deleting note:', error);
-        return false;
-    }
-    return true;
 }

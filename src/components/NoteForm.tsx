@@ -18,7 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import type { Note } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { createNote, updateNote } from '@/lib/data';
+import { createNoteAction, updateNoteAction } from '@/app/admin/actions';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -75,26 +75,25 @@ export function NoteForm({ note }: NoteFormProps) {
     try {
         let result;
         if (isEditMode && note) {
-            result = await updateNote(note.id, data);
+            result = await updateNoteAction(note.id, data);
         } else {
-            result = await createNote(data as any);
+            result = await createNoteAction(data as any);
         }
 
-        if (result) {
+        if (result.success) {
             toast({
                 title: isEditMode ? 'Note Updated' : 'Note Created',
                 description: `Successfully ${isEditMode ? 'updated' : 'created'} "${data.topic_title}".`,
             });
             router.push('/admin');
-            router.refresh();
         } else {
-            throw new Error('Operation failed');
+            throw new Error(result.error || 'Operation failed');
         }
-    } catch (error) {
+    } catch (error: any) {
         toast({
             variant: 'destructive',
             title: 'An error occurred',
-            description: `Could not ${isEditMode ? 'update' : 'create'} the note. Please try again.`,
+            description: error.message || `Could not ${isEditMode ? 'update' : 'create'} the note. Please try again.`,
         });
     }
   };

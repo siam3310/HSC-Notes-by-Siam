@@ -34,6 +34,7 @@ USING (is_published = TRUE);
 
 -- 4. Create a policy to grant full access (SELECT, INSERT, UPDATE, DELETE) to authenticated users with the 'service_role'.
 -- This is necessary for the admin panel to manage all notes, including drafts.
+-- NOTE: The web client will NOT use this policy. We will use a separate admin client on the server for these operations.
 CREATE POLICY "Full access for service role"
 ON public.notes
 FOR ALL
@@ -44,18 +45,19 @@ USING (true);
 
 ## 2. Get Project Credentials
 
-You'll need your Supabase Project URL and the `anon` (public) key to connect your Next.js application.
+You'll need your Supabase Project URL, the `anon` (public) key, and the `service_role` key.
 
 1.  Go to your project's **Settings**.
 2.  Click on the **API** tab.
-3.  Under **Project API Keys**, you will find your `anon` key (labeled as `public`).
+3.  Under **Project API Keys**, you will find your `anon` key (labeled as `public`) and your `service_role` key.
 4.  You will also find your Project **URL** there.
 
-Create a `.env.local` file in the root of your project and add these credentials:
+Create a `.env.local` file in the root of your project and add these credentials. **Keep your service_role key secret!**
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=YOUR_PROJECT_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 ```
 
 ## 3. (Optional) Add Example Data
