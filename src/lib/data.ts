@@ -134,3 +134,60 @@ export async function getSubjectsAndChapters(): Promise<{ subjects: Subject[], c
         chapters: chaptersRes.data
     };
 }
+
+export async function getNotesAdmin(): Promise<{ notes: NoteWithRelations[]; error?: string }> {
+    const { data, error } = await supabaseAdmin
+        .from('notes')
+        .select(`
+            *,
+            subjects (name),
+            chapters (name)
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching notes:', error);
+        return { notes: [], error: error.message };
+    }
+
+    const transformedData = data.map(note => ({
+        ...note,
+        subject_name: note.subjects?.name ?? 'N/A',
+        chapter_name: note.chapters?.name ?? null,
+    }));
+
+
+    return { notes: transformedData as unknown as NoteWithRelations[] };
+}
+
+export async function deleteMultipleNotesAdmin(ids: number[]): Promise<{ success: boolean; error?: string }> {
+    if (!ids || ids.length === 0) {
+        return { success: false, error: 'No note IDs provided.' };
+    }
+    
+    // RLS with "ON DELETE CASCADE" should handle note_images, but explicit deletion is safer.
+    const { error: imageDeleteError } = await supabaseAdmin
+        .from('note_images')
+        .delete()
+        .in('note_id', ids);
+
+    if (imageDeleteError) {
+        console.error('Error deleting associated images for multiple notes:', imageDeleteError);
+        return { success: false, error: imageDeleteError.message };
+    }
+
+    const { error } = await supabaseAdmin
+        .from('notes')
+        .delete()
+        .in('id', ids);
+
+    if (error) {
+        console.error('Error deleting multiple notes:', error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin/notes');
+    revalidatePath('/admin');
+    revalidatePath('/subjects', 'layout');
+    return { success: true };
+}

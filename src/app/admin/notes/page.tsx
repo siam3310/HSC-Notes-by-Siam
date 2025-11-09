@@ -25,13 +25,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { PlusCircle, Edit, Trash2, Loader2, Search, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { getNotesAction, deleteNoteAction, deleteMultipleNotesAction } from './actions';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getNotesAdmin, deleteMultipleNotesAdmin } from '@/lib/data';
+import { deleteNoteAction } from './actions';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 export default function AdminNotesPage() {
@@ -48,7 +48,7 @@ export default function AdminNotesPage() {
 
   const fetchNotes = async () => {
     setLoading(true);
-    const result = await getNotesAction();
+    const result = await getNotesAdmin();
     if(result.error) {
         toast({
             variant: 'destructive',
@@ -103,7 +103,7 @@ export default function AdminNotesPage() {
 
   const handleDeleteMultiple = () => {
     startTransition(async () => {
-        const result = await deleteMultipleNotesAction(selectedNotes);
+        const result = await deleteMultipleNotesAdmin(selectedNotes);
         if (result.success) {
             setAllNotes(prev => prev.filter(note => !selectedNotes.includes(note.id)));
             setSelectedNotes([]);
@@ -133,8 +133,8 @@ export default function AdminNotesPage() {
                 Create, edit, and manage all your study notes.
             </p>
         </div>
-        <Link href="/admin/new" className="w-full sm:w-auto">
-          <Button className="w-full sm:w-auto">
+        <Link href="/admin/new" passHref>
+          <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add New Note
           </Button>
@@ -156,7 +156,7 @@ export default function AdminNotesPage() {
                 {numSelected > 0 && (
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="w-full sm:w-auto" disabled={isPending}>
+                            <Button variant="destructive" disabled={isPending}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete ({numSelected})
                             </Button>

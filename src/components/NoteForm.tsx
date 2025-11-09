@@ -27,32 +27,25 @@ import type { NoteWithRelations, Subject, Chapter } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { createNoteAction, updateNoteAction } from '@/app/admin/notes/actions';
-import { Loader2, ArrowLeft, Trash2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from './ui/textarea';
 import Image from 'next/image';
 
-const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const ACCEPTED_PDF_TYPE = "application/pdf";
 
 const noteFormSchema = z.object({
   subject_id: z.coerce.number().positive({ message: 'Please select a subject.' }),
   chapter_id: z.coerce.number().optional().nullable(),
-  topic_title: z.string().min(3, {
-    message: 'Topic title must be at least 3 characters.',
-  }),
+  topic_title: z.string().min(3, { message: 'Topic title must be at least 3 characters.' }),
   content: z.string().optional(),
-  images: z
-    .any()
-    .refine((files) => {
-        if (!files || files.length === 0) return true;
-        for(let i = 0; i < files.length; i++) {
-            if(!ACCEPTED_FILE_TYPES.includes(files[i].type)) return false;
-        }
-        return true;
-    }, "Only .jpg, .png, .gif, .webp files are accepted."),
+  images: z.any().optional(), // We'll validate this manually if needed
+  pdf: z.any().optional(),
   images_to_delete: z.array(z.number()).optional(),
+  pdf_to_delete: z.boolean().optional(),
   is_published: z.boolean().default(false),
 });
 
@@ -69,29 +62,19 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   const { toast } = useToast();
   const isEditMode = !!note;
 
-  const defaultValues = isEditMode && note
-    ? {
-        subject_id: note.subject_id,
-        chapter_id: note.chapter_id,
-        topic_title: note.topic_title,
-        content: note.content || '',
-        is_published: note.is_published,
-        images: undefined,
-        images_to_delete: [],
-      }
-    : {
-        subject_id: 0,
-        chapter_id: null,
-        topic_title: '',
-        content: '',
-        is_published: false,
-        images: undefined,
-        images_to_delete: [],
-      };
-
   const form = useForm<NoteFormValues>({
     resolver: zodResolver(noteFormSchema),
-    defaultValues,
+    defaultValues: {
+        subject_id: note?.subject_id || 0,
+        chapter_id: note?.chapter_id || null,
+        topic_title: note?.topic_title || '',
+        content: note?.content || '',
+        is_published: note?.is_published ?? false,
+        images: undefined,
+        pdf: undefined,
+        images_to_delete: [],
+        pdf_to_delete: false,
+      },
   });
 
   const selectedSubjectId = form.watch('subject_id');
@@ -103,13 +86,11 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     } else {
       setChaptersForSelectedSubject([]);
     }
-     // Reset chapter when subject changes, unless we are in edit mode and on initial load
     if (!isEditMode || (isEditMode && note?.subject_id !== selectedSubjectId)) {
         form.setValue('chapter_id', null);
     }
   }, [selectedSubjectId, chapters, isEditMode, note, form]);
 
-  // When in edit mode, populate chapters for the initial subject
   useEffect(() => {
     if (isEditMode && note?.subject_id) {
        setChaptersForSelectedSubject(chapters.filter(c => c.subject_id === note.subject_id));
@@ -120,36 +101,34 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   const onSubmit = async (data: NoteFormValues) => {
     const formData = new FormData();
     
-    // Append all fields except files
+    // Append all fields from the form data object
     Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'images' && key !== 'images_to_delete' && value !== null && value !== undefined) {
-             if (key === 'chapter_id' && (value === 0 || value === '0')) {
-                // Don't append if it's the "No Chapter" placeholder
-            } else {
-              formData.append(key, String(value));
-            }
+        if (key === 'images' || key === 'pdf') return; // Skip files for now
+        if (value !== null && value !== undefined) {
+             if (key === 'chapter_id' && (value === 0 || value === '0')) return;
+             if (key === 'images_to_delete') {
+                 formData.append(key, JSON.stringify(value));
+             } else {
+                 formData.append(key, String(value));
+             }
         }
     });
 
-    // Append files
+    // Append image files
     if (data.images) {
         for (let i = 0; i < data.images.length; i++) {
             formData.append('images', data.images[i]);
         }
     }
-    
-    // Append images to delete
-    if (data.images_to_delete) {
-        formData.append('images_to_delete', JSON.stringify(data.images_to_delete));
+    // Append PDF file
+    if (data.pdf && data.pdf[0]) {
+        formData.append('pdf', data.pdf[0]);
     }
 
     try {
-        let result;
-        if (isEditMode && note) {
-            result = await updateNoteAction(note.id, formData);
-        } else {
-            result = await createNoteAction(formData);
-        }
+        const result = isEditMode && note
+            ? await updateNoteAction(note.id, formData)
+            : await createNoteAction(formData);
 
         if (result.success) {
             toast({
@@ -165,7 +144,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         toast({
             variant: 'destructive',
             title: 'An error occurred',
-            description: error.message || `Could not ${isEditMode ? 'update' : 'create'} the note. Please try again.`,
+            description: error.message || `Could not perform the operation. Please try again.`,
         });
     }
   };
@@ -175,116 +154,109 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     form.setValue('images_to_delete', [...currentImagesToDelete, imageId]);
   };
   
+  const handleDeletePdf = () => {
+    form.setValue('pdf_to_delete', true);
+  };
+  
   const imagesToDelete = form.watch('images_to_delete') || [];
-
+  const pdfToDelete = form.watch('pdf_to_delete');
 
   return (
     <div className="w-full space-y-6">
-        <header className="flex items-center justify-between">
-            <div>
-                <Button variant="ghost" asChild>
-                    <Link href="/admin/notes">
-                        <ArrowLeft className="mr-2 h-4 w-4"/> Back to Notes
-                    </Link>
-                </Button>
-                <h1 className="text-3xl font-bold tracking-tight px-4">
-                    {isEditMode ? 'Edit Note' : 'Create New Note'}
-                </h1>
-                <p className="text-muted-foreground mt-1 px-4">
-                    {isEditMode ? 'Update the details of the note.' : 'Fill in the details to create a new note.'}
-                </p>
-            </div>
+        <header>
+            <Button variant="ghost" asChild>
+                <Link href="/admin/notes"><ArrowLeft className="mr-2 h-4 w-4"/> Back to Notes</Link>
+            </Button>
+            <h1 className="text-3xl font-bold tracking-tight px-4">{isEditMode ? 'Edit Note' : 'Create New Note'}</h1>
         </header>
 
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Card>
                 <CardContent className="p-4 sm:p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField
-                        control={form.control}
-                        name="subject_id"
-                        render={({ field }) => (
+                            control={form.control} name="subject_id"
+                            render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Subject</FormLabel>
-                            <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a subject" />
-                                </SelectTrigger>
-                                </FormControl>
+                                <FormLabel>Subject</FormLabel>
+                                <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select a subject" /></SelectTrigger></FormControl>
                                 <SelectContent>
-                                {subjects.map(subject => (
-                                    <SelectItem key={subject.id} value={String(subject.id)}>{subject.name}</SelectItem>
-                                ))}
+                                    {subjects.map(subject => <SelectItem key={subject.id} value={String(subject.id)}>{subject.name}</SelectItem>)}
                                 </SelectContent>
-                            </Select>
-                            <FormMessage />
+                                </Select>
+                                <FormMessage />
                             </FormItem>
-                        )}
+                            )}
                         />
                         <FormField
-                        control={form.control}
-                        name="chapter_id"
-                        render={({ field }) => (
+                            control={form.control} name="chapter_id"
+                            render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Chapter (Optional)</FormLabel>
-                                <Select 
-                                    onValueChange={(value) => field.onChange(value === '0' ? null : Number(value))} 
-                                    value={String(field.value ?? '0')} 
-                                    disabled={!selectedSubjectId}
-                                >
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={!selectedSubjectId ? "First select a subject" : "Select a chapter"} />
-                                    </SelectTrigger>
-                                    </FormControl>
+                                <FormLabel>Chapter (Optional)</FormLabel>
+                                <Select onValueChange={(value) => field.onChange(value === '0' ? null : Number(value))} value={String(field.value ?? '0')} disabled={!selectedSubjectId}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder={!selectedSubjectId ? "First select a subject" : "Select a chapter"} /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="0">No Chapter</SelectItem>
-                                        {chaptersForSelectedSubject.map(chapter => (
-                                            <SelectItem key={chapter.id} value={String(chapter.id)}>{chapter.name}</SelectItem>
-                                        ))}
+                                        {chaptersForSelectedSubject.map(chapter => <SelectItem key={chapter.id} value={String(chapter.id)}>{chapter.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
-                            <FormMessage />
+                                <FormMessage />
                             </FormItem>
-                        )}
+                            )}
                         />
                     </div>
                     <FormField
-                    control={form.control}
-                    name="topic_title"
-                    render={({ field }) => (
+                        control={form.control} name="topic_title"
+                        render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Topic Title</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Motion in a Straight Line" {...field} />
-                        </FormControl>
-                        <FormMessage />
+                            <FormLabel>Topic Title</FormLabel>
+                            <FormControl><Input placeholder="e.g., Motion in a Straight Line" {...field} /></FormControl>
+                            <FormMessage />
                         </FormItem>
-                    )}
+                        )}
+                    />
+                    <FormField
+                        control={form.control} name="content"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Content (Optional)</FormLabel>
+                            <FormControl><Textarea placeholder="Start writing your note here..." className="min-h-[200px]" {...field} /></FormControl>
+                            <FormDescription>Add optional text content for the note.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
                     />
 
+                    {isEditMode && note?.pdf_url && !pdfToDelete && (
+                         <FormItem>
+                            <FormLabel>Current PDF</FormLabel>
+                            <div className="relative group flex items-center gap-4 p-3 border rounded-md">
+                                <FileText className="h-6 w-6 text-muted-foreground" />
+                                <a href={note.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{note.pdf_url.split('/').pop()}</a>
+                                <Button type="button" variant="destructive" size="icon" className="h-7 w-7 opacity-80 group-hover:opacity-100" onClick={handleDeletePdf}>
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            </div>
+                        </FormItem>
+                    )}
+
                     <FormField
-                        control={form.control}
-                        name="content"
+                        control={form.control} name="pdf"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Content (Optional)</FormLabel>
+                                <FormLabel>{isEditMode && note?.pdf_url ? "Replace PDF" : "Upload PDF (Optional)"}</FormLabel>
                                 <FormControl>
-                                    <Textarea
-                                        placeholder="Start writing your note here..."
-                                        className="min-h-[200px]"
-                                        {...field}
-                                    />
+                                    <Input type="file" accept={ACCEPTED_PDF_TYPE} onChange={(e) => field.onChange(e.target.files)} />
                                 </FormControl>
-                                <FormDescription>
-                                Add text content for the note.
-                                </FormDescription>
+                                <FormDescription>Upload a single PDF file for this note.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
+                    
+                    <hr/>
 
                     {isEditMode && note?.images && note.images.length > 0 && (
                         <FormItem>
@@ -301,65 +273,42 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                                     </div>
                                 ))}
                             </div>
-                            <FormDescription>Click the trash icon to remove an image on update.</FormDescription>
+                            <FormDescription>Click the trash icon to mark an image for deletion on update.</FormDescription>
                         </FormItem>
                     )}
 
-
                     <FormField
-                        control={form.control}
-                        name="images"
+                        control={form.control} name="images"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Upload Images</FormLabel>
+                                <FormLabel>Upload Images (Optional)</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        type="file" 
-                                        accept="image/*"
-                                        multiple
-                                        onChange={(e) => {
-                                            field.onChange(e.target.files);
-                                        }}
-                                    />
+                                    <Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} multiple onChange={(e) => field.onChange(e.target.files)} />
                                 </FormControl>
-                                <FormDescription>
-                                    {isEditMode ? "Upload new images to add to this note." : "Upload one or more images for this note."}
-                                </FormDescription>
+                                <FormDescription>Upload one or more images for this note.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
 
                     <FormField
-                    control={form.control}
-                    name="is_published"
-                    render={({ field }) => (
+                        control={form.control} name="is_published"
+                        render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/50 p-4">
-                        <div className="space-y-0.5">
-                            <FormLabel className="text-base">Publish Status</FormLabel>
-                            <p className="text-sm text-muted-foreground">
-                                Make this note visible to all users.
-                            </p>
-                        </div>
-                        <FormControl>
-                            <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            />
-                        </FormControl>
+                            <div className="space-y-0.5">
+                                <FormLabel className="text-base">Publish Status</FormLabel>
+                                <p className="text-sm text-muted-foreground">Make this note visible to all users.</p>
+                            </div>
+                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                         </FormItem>
-                    )}
+                        )}
                     />
                 </CardContent>
             </Card>
             <div className="flex justify-end gap-2 sticky bottom-0 bg-background py-4 px-2 border-t">
-                <Button type="button" variant="outline" onClick={() => router.back()}>
-                    Cancel
-                </Button>
+                <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
                 <Button type="submit" disabled={form.formState.isSubmitting} className="w-32">
-                    {form.formState.isSubmitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : isEditMode ? 'Update Note' : 'Create Note'}
+                    {form.formState.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isEditMode ? 'Update Note' : 'Create Note'}
                 </Button>
             </div>
         </form>
