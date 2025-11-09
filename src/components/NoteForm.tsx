@@ -234,7 +234,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                             <FormLabel>Current PDF</FormLabel>
                             <div className="relative group flex items-center gap-4 p-3 border rounded-md">
                                 <FileText className="h-6 w-6 text-muted-foreground" />
-                                <a href={note.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{note.pdf_url.split('/').pop()}</a>
+                                <a href={note.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{decodeURIComponent(note.pdf_url.split('/').pop() ?? '')}</a>
                                 <Button type="button" variant="destructive" size="icon" className="h-7 w-7 opacity-80 group-hover:opacity-100" onClick={handleDeletePdf}>
                                     <Trash2 className="h-4 w-4"/>
                                 </Button>
@@ -243,12 +243,18 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                     )}
 
                     <FormField
-                        control={form.control} name="pdf"
-                        render={({ field }) => (
+                        control={form.control}
+                        name="pdf"
+                        render={({ field: { onChange, ...fieldProps } }) => (
                             <FormItem>
-                                <FormLabel>{isEditMode && note?.pdf_url ? "Replace PDF" : "Upload PDF (Optional)"}</FormLabel>
+                                <FormLabel>{(isEditMode && note?.pdf_url && !pdfToDelete) ? "Replace PDF" : "Upload PDF (Optional)"}</FormLabel>
                                 <FormControl>
-                                    <Input type="file" accept={ACCEPTED_PDF_TYPE} onChange={(e) => field.onChange(e.target.files)} />
+                                    <Input 
+                                        type="file" 
+                                        accept={ACCEPTED_PDF_TYPE} 
+                                        onChange={(e) => onChange(e.target.files)}
+                                        {...fieldProps}
+                                    />
                                 </FormControl>
                                 <FormDescription>Upload a single PDF file for this note.</FormDescription>
                                 <FormMessage />
@@ -277,13 +283,20 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         </FormItem>
                     )}
 
-                    <FormField
-                        control={form.control} name="images"
-                        render={({ field }) => (
+                     <FormField
+                        control={form.control}
+                        name="images"
+                        render={({ field: { onChange, ...fieldProps } }) => (
                             <FormItem>
-                                <FormLabel>Upload Images (Optional)</FormLabel>
+                                <FormLabel>{(isEditMode && note?.images && note.images.length > 0) ? "Add More Images" : "Upload Images (Optional)"}</FormLabel>
                                 <FormControl>
-                                    <Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} multiple onChange={(e) => field.onChange(e.target.files)} />
+                                    <Input 
+                                        type="file" 
+                                        accept={ACCEPTED_IMAGE_TYPES.join(',')} 
+                                        multiple 
+                                        onChange={(e) => onChange(e.target.files)}
+                                        {...fieldProps}
+                                    />
                                 </FormControl>
                                 <FormDescription>Upload one or more images for this note.</FormDescription>
                                 <FormMessage />

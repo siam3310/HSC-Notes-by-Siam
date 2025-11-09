@@ -3,12 +3,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import type { Note, NoteWithRelations } from '@/lib/types';
+import type { Note } from '@/lib/types';
 import { z } from 'zod';
-import { getNoteByIdAdmin, getNotesAdmin } from '@/lib/data';
-
-// Zod schema for validating file uploads
-const fileSchema = z.instanceof(File).optional();
+import { getNoteByIdAdmin } from '@/lib/data';
 
 // Main schema for the note form
 const noteSchema = z.object({
@@ -18,7 +15,6 @@ const noteSchema = z.object({
   content: z.string().optional(),
   is_published: z.enum(['true', 'false']).transform(val => val === 'true'),
 });
-
 
 async function handleFileUpload(file: File): Promise<string> {
     const fileName = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
@@ -37,12 +33,13 @@ async function handleFileUpload(file: File): Promise<string> {
     return publicUrl;
 }
 
-
 export async function createNoteAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
     const rawData = Object.fromEntries(formData.entries());
-    const newImages = formData.getAll('images').filter(f => f instanceof File && f.size > 0) as File[];
-    const newPdf = formData.get('pdf') as File | null;
     
+    // Correctly get files. formData.get('pdf') might not work as expected.
+    const newImages = formData.getAll('images').filter(f => f instanceof File && f.size > 0) as File[];
+    const newPdfFile = (formData.get('pdf') as File | null);
+
     try {
         const validatedData = noteSchema.parse(rawData);
 
@@ -54,8 +51,8 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
         };
 
         // Handle PDF Upload
-        if (newPdf && newPdf.size > 0) {
-            noteDataToInsert.pdf_url = await handleFileUpload(newPdf);
+        if (newPdfFile && newPdfFile.size > 0) {
+            noteDataToInsert.pdf_url = await handleFileUpload(newPdfFile);
         }
 
         const { data: note, error } = await supabaseAdmin
@@ -93,11 +90,10 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
     }
 }
 
-
 export async function updateNoteAction(id: number, formData: FormData): Promise<{ success: boolean; error?: string }> {
     const rawData = Object.fromEntries(formData.entries());
     const newImages = formData.getAll('images').filter(f => f instanceof File && f.size > 0) as File[];
-    const newPdf = formData.get('pdf') as File | null;
+    const newPdfFile = (formData.get('pdf') as File | null);
     
     const imagesToDelete = JSON.parse(formData.get('images_to_delete') as string || '[]') as number[];
     const pdfToDelete = (formData.get('pdf_to_delete') === 'true');
@@ -126,12 +122,10 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
         // 3. Handle PDF
         let finalPdfUrl = existingNote.pdf_url;
         if (pdfToDelete) {
-            // Here you might want to delete the file from storage as well
             finalPdfUrl = null;
         }
-        if (newPdf && newPdf.size > 0) {
-            // If there's a new PDF, upload it and replace the old one.
-            finalPdfUrl = await handleFileUpload(newPdf);
+        if (newPdfFile && newPdfFile.size > 0) {
+            finalPdfUrl = await handleFileUpload(newPdfFile);
         }
         
         // 4. Update note details
@@ -158,9 +152,7 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
     }
 }
 
-
 export async function deleteNoteAction(id: number): Promise<{ success: boolean; error?: string }> {
-    // RLS on note_images is set to ON DELETE CASCADE, so they will be deleted automatically.
     const { error } = await supabaseAdmin
         .from('notes')
         .delete()
@@ -176,16 +168,11 @@ export async function deleteNoteAction(id: number): Promise<{ success: boolean; 
     return { success: true };
 }
 
-export async function getNotesAction(): Promise<{ notes: NoteWithRelations[]; error?: string }> {
-  return await getNotesAdmin();
-}
-
 export async function deleteMultipleNotesAction(ids: number[]): Promise<{ success: boolean; error?: string }> {
     if (!ids || ids.length === 0) {
         return { success: false, error: 'No note IDs provided.' };
     }
-    
-    // RLS with "ON DELETE CASCADE" should handle note_images, but explicit deletion is safer.
+
     const { error: imageDeleteError } = await supabaseAdmin
         .from('note_images')
         .delete()
