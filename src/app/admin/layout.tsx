@@ -92,7 +92,7 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex h-screen items-center justify-center">
         <LayoutDashboard className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -189,7 +189,7 @@ export default function AdminLayout({
             </Link>
             <SidebarTrigger />
         </header>
-        <div className="p-4 sm:p-6">{children}</div>
+        <main className="p-4 sm:p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );
