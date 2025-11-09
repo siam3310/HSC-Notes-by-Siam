@@ -16,8 +16,8 @@ const noteSchema = z.object({
 });
 
 async function handleFileUpload(file: File): Promise<string> {
-    // Generate a unique filename to avoid conflicts and issues with client-provided names
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${file.name.replace(/\s/g, '_')}`;
+    // Generate a unique filename that does not depend on file.name
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-file`;
     
     const { data, error } = await supabaseAdmin.storage
         .from('notes-pdfs')
@@ -65,8 +65,8 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
     const rawData = Object.fromEntries(formData.entries());
     
     const newImages = formData.getAll('images').filter(f => f instanceof File && f.size > 0) as File[];
-    const newPdfFile = formData.get('pdf') as File | null;
-
+    const newPdfFile = (formData.get('pdf') as File | null);
+    
     try {
         const validatedData = noteSchema.parse(rawData);
 
