@@ -7,17 +7,29 @@ import type { Note, NoteWithRelations, Subject, Chapter } from './types';
 // =================================================================
 
 export async function getSubjects(): Promise<string[]> {
+  // Fetch subjects that have at least one published note.
   const { data, error } = await supabase
-    .from('subjects')
-    .select('name')
-    .order('name', { ascending: true });
-  
+    .from('notes')
+    .select(`
+      subjects ( name )
+    `)
+    .eq('is_published', true);
+
   if (error) {
-    console.error('Error fetching subjects:', error);
+    console.error('Error fetching active subjects:', error);
     return [];
   }
-  return data.map(s => s.name);
+
+  // Create a unique list of subject names from the notes.
+  // The 'Set' object automatically handles duplicates.
+  const subjectNames = [...new Set(data.map(item => item.subjects.name))];
+  
+  // Sort the names alphabetically.
+  subjectNames.sort();
+
+  return subjectNames;
 }
+
 
 export async function getNotesBySubject(subjectName: string): Promise<{ notes: NoteWithRelations[], error?: string}> {
   const { data, error } = await supabase
