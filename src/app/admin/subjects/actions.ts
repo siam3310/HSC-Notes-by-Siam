@@ -75,28 +75,18 @@ export async function updateSubjectAction(id: number, name: string): Promise<{ s
 
 
 export async function deleteSubjectAction(id: number): Promise<{ success: boolean; error?: string }> {
-    // We need to check if any notes are associated with this subject first.
-    // The foreign key constraint ON DELETE RESTRICT will prevent deletion if notes exist.
-    const { data: notes, error: notesError } = await supabaseAdmin
-        .from('notes')
-        .select('id')
-        .eq('subject_id', id)
-        .limit(1);
-
-    if (notesError) {
-         return { success: false, error: `Could not verify associated notes: ${notesError.message}` };
-    }
-
-    if (notes && notes.length > 0) {
-        return { success: false, error: 'Cannot delete subject. There are still notes associated with it.' };
-    }
-
+    // Foreign key in 'notes' table is ON DELETE RESTRICT, 
+    // so Supabase will prevent deletion if notes exist.
+    // We can rely on that and catch the specific error.
     const { error } = await supabaseAdmin
         .from('subjects')
         .delete()
         .eq('id', id);
 
     if (error) {
+        if (error.code === '23503') { // Foreign key violation
+             return { success: false, error: 'Cannot delete subject. There are still notes or chapters associated with it.' };
+        }
         return { success: false, error: error.message };
     }
 
@@ -182,26 +172,17 @@ export async function updateChapterAction(id: number, name: string): Promise<{ s
 }
 
 export async function deleteChapterAction(id: number): Promise<{ success: boolean; error?: string }> {
-     const { data: notes, error: notesError } = await supabaseAdmin
-        .from('notes')
-        .select('id')
-        .eq('chapter_id', id)
-        .limit(1);
-
-    if (notesError) {
-         return { success: false, error: `Could not verify associated notes: ${notesError.message}` };
-    }
-
-    if (notes && notes.length > 0) {
-        return { success: false, error: 'Cannot delete chapter. There are still notes associated with it.' };
-    }
-
+    // Foreign key in 'notes' table is ON DELETE RESTRICT.
+    // Supabase will throw an error if we try to delete a chapter that has notes.
     const { error } = await supabaseAdmin
         .from('chapters')
         .delete()
         .eq('id', id);
 
     if (error) {
+         if (error.code === '23503') { // Foreign key violation
+            return { success: false, error: 'Cannot delete chapter. There are still notes associated with it.' };
+        }
         return { success: false, error: error.message };
     }
 
@@ -209,5 +190,3 @@ export async function deleteChapterAction(id: number): Promise<{ success: boolea
     revalidatePath('/admin/new');
     return { success: true };
 }
-
-    

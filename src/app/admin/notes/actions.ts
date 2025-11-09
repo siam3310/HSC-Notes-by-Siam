@@ -22,7 +22,7 @@ const pdfFileSchema = fileSchema.refine(
 const noteSchema = z.object({
   topic_title: z.string().min(3, "Topic title must be at least 3 characters long."),
   subject_id: z.coerce.number().positive("Please select a subject."),
-  chapter_id: z.coerce.number().positive().optional().nullable(),
+  chapter_id: z.coerce.number().optional().nullable(),
   content: z.string().optional(),
   is_published: z.enum(['true', 'false']).transform(val => val === 'true'),
 });
@@ -100,6 +100,7 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
         return { success: true };
 
     } catch (error: any) {
+        console.error("Create Note Error:", error);
         return { success: false, error: error.message || 'An unexpected error occurred.' };
     }
 }
@@ -165,6 +166,7 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
         return { success: true };
 
     } catch (error: any) {
+        console.error("Update Note Error:", error);
         return { success: false, error: error.message || 'An unexpected error occurred.' };
     }
 }
@@ -183,7 +185,7 @@ export async function deleteNoteAction(id: number): Promise<{ success: boolean; 
 
     revalidatePath('/admin/notes');
     revalidatePath('/admin');
-    revalidatePath('/subjects', 'layout');
+revalidatePath('/subjects', 'layout');
     return { success: true };
 }
 
@@ -197,17 +199,6 @@ export async function deleteMultipleNotesAction(ids: number[]) {
         return { success: false, error: 'No note IDs provided.' };
     }
     
-    // RLS with "ON DELETE CASCADE" should handle note_images, but explicit deletion is safer.
-    const { error: imageDeleteError } = await supabaseAdmin
-        .from('note_images')
-        .delete()
-        .in('note_id', ids);
-
-    if (imageDeleteError) {
-        console.error('Error deleting associated images for multiple notes:', imageDeleteError);
-        return { success: false, error: imageDeleteError.message };
-    }
-
     const { error } = await supabaseAdmin
         .from('notes')
         .delete()
