@@ -44,18 +44,32 @@ export default function AdminLayout({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const sessionAuth = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (sessionAuth === 'true') {
-      setIsAuthenticated(true);
+    // Session storage is only available on the client.
+    try {
+      const sessionAuth = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (sessionAuth === 'true') {
+        setIsAuthenticated(true);
+      }
+    } catch (e) {
+      console.error("Could not access session storage:", e);
     }
     setLoading(false);
   }, []);
 
   const handleLogin = () => {
     if (passcode === ADMIN_PASSCODE) {
-      sessionStorage.setItem(SESSION_STORAGE_KEY, 'true');
-      setIsAuthenticated(true);
-      toast({ title: 'Login successful!', description: 'Welcome to the admin dashboard.' });
+      try {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, 'true');
+        setIsAuthenticated(true);
+        toast({ title: 'Login successful!', description: 'Welcome to the admin dashboard.' });
+      } catch (e) {
+         console.error("Could not access session storage:", e);
+         toast({
+           variant: 'destructive',
+           title: 'Login Failed',
+           description: 'Could not save session. Please enable cookies/session storage.',
+         });
+      }
     } else {
       toast({
         variant: 'destructive',
@@ -67,14 +81,18 @@ export default function AdminLayout({
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem(SESSION_STORAGE_KEY);
-    setIsAuthenticated(false);
-    router.push('/');
+    try {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        setIsAuthenticated(false);
+        router.push('/');
+    } catch(e) {
+        console.error("Could not access session storage:", e);
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-background">
         <LayoutDashboard className="h-8 w-8 animate-spin" />
       </div>
     );
@@ -82,7 +100,7 @@ export default function AdminLayout({
 
   if (!isAuthenticated) {
      return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
         <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Admin Login</CardTitle>

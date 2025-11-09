@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm, Controller } from 'react-hook-form';
@@ -26,11 +27,13 @@ import type { Note, Subject, Chapter } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { createNoteAction, updateNoteAction } from '@/app/admin/notes/actions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
 
-const RichTextEditor = dynamic(() => import('./RichTextEditor'), { ssr: false });
+const RichTextEditor = dynamic(() => import('./RichTextEditor'), { ssr: false, loading: () => <div className="min-h-[300px] w-full rounded-md border bg-card flex items-center justify-center"><Loader2 className="animate-spin h-6 w-6"/></div> });
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["application/pdf"];
@@ -100,7 +103,11 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     } else {
       setChaptersForSelectedSubject([]);
     }
-  }, [selectedSubjectId, chapters]);
+     // Reset chapter when subject changes, unless we are in edit mode and on initial load
+    if (!isEditMode || (isEditMode && note?.subject_id !== selectedSubjectId)) {
+        form.setValue('chapter_id', 0);
+    }
+  }, [selectedSubjectId, chapters, isEditMode, note, form]);
 
   // When in edit mode, populate chapters for the initial subject
   useEffect(() => {
@@ -152,172 +159,193 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
 
   return (
     <div className="w-full space-y-6">
-        <header>
-            <h1 className="text-3xl font-bold tracking-tight">
-                {isEditMode ? 'Edit Note' : 'Create New Note'}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-                {isEditMode ? 'Update the details of the note.' : 'Fill in the details to create a new note.'}
-            </p>
+        <header className="flex items-center justify-between">
+            <div>
+                <Button variant="ghost" asChild>
+                    <Link href="/admin/notes">
+                        <ArrowLeft className="mr-2 h-4 w-4"/> Back to Notes
+                    </Link>
+                </Button>
+                <h1 className="text-3xl font-bold tracking-tight px-4">
+                    {isEditMode ? 'Edit Note' : 'Create New Note'}
+                </h1>
+                <p className="text-muted-foreground mt-1 px-4">
+                    {isEditMode ? 'Update the details of the note.' : 'Fill in the details to create a new note.'}
+                </p>
+            </div>
         </header>
 
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="subject_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={(value) => {
-                        field.onChange(Number(value));
-                        form.setValue('chapter_id', 0); // Reset chapter when subject changes
-                      }} defaultValue={String(field.value)}>
+            <Card>
+                <CardContent className="p-4 sm:p-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                        control={form.control}
+                        name="subject_id"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Subject</FormLabel>
+                            <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a subject" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {subjects.map(subject => (
+                                    <SelectItem key={subject.id} value={String(subject.id)}>{subject.name}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="chapter_id"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Chapter Name</FormLabel>
+                                <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value)} disabled={!selectedSubjectId || chaptersForSelectedSubject.length === 0}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={!selectedSubjectId ? "First select a subject" : "Select a chapter"} />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {chaptersForSelectedSubject.map(chapter => (
+                                        <SelectItem key={chapter.id} value={String(chapter.id)}>{chapter.name}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
+                    <FormField
+                    control={form.control}
+                    name="topic_title"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Topic Title</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a subject" />
-                          </SelectTrigger>
+                            <Input placeholder="e.g., Motion in a Straight Line" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          {subjects.map(subject => (
-                            <SelectItem key={subject.id} value={String(subject.id)}>{subject.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="chapter_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Chapter Name</FormLabel>
-                        <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value)} disabled={!selectedSubjectId}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a chapter" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            {chaptersForSelectedSubject.map(chapter => (
-                                <SelectItem key={chapter.id} value={String(chapter.id)}>{chapter.name}</SelectItem>
-                            ))}
-                            </SelectContent>
-                        </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-            </div>
-            <FormField
-            control={form.control}
-            name="topic_title"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Topic Title</FormLabel>
-                <FormControl>
-                    <Input placeholder="e.g., Motion in a Straight Line" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <Controller
-                name="content"
-                control={form.control}
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Content</FormLabel>
-                        <FormControl>
-                            <RichTextEditor
-                                value={field.value}
-                                onChange={field.onChange}
-                            />
-                        </FormControl>
-                        <FormDescription>
-                           Add rich text content if there is no PDF.
-                        </FormDescription>
                         <FormMessage />
-                    </FormItem>
-                )}
-            />
+                        </FormItem>
+                    )}
+                    />
 
-            <FormField
-                control={form.control}
-                name="pdf_file"
-                render={({ field: { value, onChange, ...fieldProps } }) => (
-                    <FormItem>
-                        <FormLabel>Upload PDF</FormLabel>
+                    <Controller
+                        name="content"
+                        control={form.control}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Content (Optional)</FormLabel>
+                                <FormControl>
+                                    <RichTextEditor
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                    />
+                                </FormControl>
+                                <FormDescription>
+                                Add rich text content if there is no PDF.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="pdf_file"
+                        render={({ field: { value, onChange, ...fieldProps } }) => (
+                            <FormItem>
+                                <FormLabel>Upload PDF</FormLabel>
+                                <FormControl>
+                                    <Input 
+                                        {...fieldProps}
+                                        type="file" 
+                                        accept=".pdf"
+                                        onChange={(e) => {
+                                        const file = e.target.files && e.target.files[0];
+                                        onChange(file ? [file] : null);
+                                        if (file) {
+                                            form.setValue('pdf_url', ''); // Clear URL field if file is selected
+                                        }
+                                        }}
+                                    />
+                                </FormControl>
+                                <FormDescription>
+                                    Upload a PDF file directly (max 5MB). This will override the PDF URL field.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <div className="relative my-2">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-card px-2 text-muted-foreground">Or</span>
+                        </div>
+                    </div>
+
+                    <FormField
+                    control={form.control}
+                    name="pdf_url"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>PDF URL (Optional)</FormLabel>
                         <FormControl>
                             <Input 
-                                {...fieldProps}
-                                type="file" 
-                                accept=".pdf"
+                                placeholder="https://example.com/note.pdf" 
+                                {...field} 
                                 onChange={(e) => {
-                                  const file = e.target.files && e.target.files[0];
-                                  onChange(file ? [file] : null);
+                                    field.onChange(e);
+                                    if (e.target.value) {
+                                        form.setValue('pdf_file', null); // Clear file input if URL is entered
+                                    }
                                 }}
                             />
                         </FormControl>
                         <FormDescription>
-                            Upload a PDF file directly (max 5MB). This will override the PDF URL field.
+                            Link to an external PDF. This will be ignored if a file is uploaded.
                         </FormDescription>
                         <FormMessage />
-                    </FormItem>
-                )}
-            />
-
-            <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or</span>
-                </div>
-            </div>
-
-            <FormField
-            control={form.control}
-            name="pdf_url"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>PDF URL (Optional)</FormLabel>
-                <FormControl>
-                    <Input placeholder="https://example.com/note.pdf" {...field} />
-                </FormControl>
-                 <FormDescription>
-                    Use this if you are linking to an external PDF instead of uploading.
-                </FormDescription>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-
-            <FormField
-            control={form.control}
-            name="is_published"
-            render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-card p-4">
-                <div className="space-y-0.5">
-                    <FormLabel className="text-base">Publish Status</FormLabel>
-                    <p className="text-sm text-muted-foreground">
-                        Make this note visible to all users.
-                    </p>
-                </div>
-                <FormControl>
-                    <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
+                        </FormItem>
+                    )}
                     />
-                </FormControl>
-                </FormItem>
-            )}
-            />
-            <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => router.push('/admin/notes')}>
+
+                    <FormField
+                    control={form.control}
+                    name="is_published"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/50 p-4">
+                        <div className="space-y-0.5">
+                            <FormLabel className="text-base">Publish Status</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                                Make this note visible to all users.
+                            </p>
+                        </div>
+                        <FormControl>
+                            <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                        </FormItem>
+                    )}
+                    />
+                </CardContent>
+            </Card>
+            <div className="flex justify-end gap-2 sticky bottom-0 bg-background py-4 px-2 border-t">
+                <Button type="button" variant="outline" onClick={() => router.back()}>
                     Cancel
                 </Button>
                 <Button type="submit" disabled={form.formState.isSubmitting} className="w-32">

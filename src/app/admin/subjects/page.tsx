@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -51,6 +52,7 @@ export default function SubjectsPage() {
   };
   
   const handleAccordionToggle = async (subjectId: number) => {
+    // Only fetch if chapters for this subject aren't already loaded
     if (!chapters[subjectId]) {
       const result = await getChaptersForSubjectAction(subjectId);
       if (result.chapters) {
@@ -73,7 +75,7 @@ export default function SubjectsPage() {
       if (result.success) {
         toast({ title: 'Success', description: 'Subject added successfully.' });
         setNewSubjectName('');
-        fetchSubjects();
+        fetchSubjects(); // Refetch all subjects to include the new one
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.error });
       }
@@ -185,30 +187,28 @@ export default function SubjectsPage() {
 
   return (
     <div className="w-full space-y-6">
-      <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <div>
-            <h1 className="text-3xl font-bold">Subjects & Chapters</h1>
-            <p className="text-muted-foreground">Manage all subjects and their corresponding chapters from the database.</p>
-        </div>
+      <header>
+        <h1 className="text-3xl font-bold tracking-tight">Subjects & Chapters</h1>
+        <p className="text-muted-foreground">Manage subjects and their corresponding chapters.</p>
       </header>
 
       <Card>
         <CardHeader>
            <CardTitle>Add New Subject</CardTitle>
-           <CardDescription>Enter a name to add a new subject to the list.</CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
                 <Input
-                placeholder="e.g., Biology 1st Paper"
-                value={newSubjectName}
-                onChange={e => setNewSubjectName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAddSubject()}
-                disabled={isPending}
+                  placeholder="e.g., Physics 1st Paper"
+                  value={newSubjectName}
+                  onChange={e => setNewSubjectName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddSubject()}
+                  disabled={isPending}
+                  className="flex-grow"
                 />
-                <Button onClick={handleAddSubject} disabled={isPending}>
-                  {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <PlusCircle className="h-4 w-4 mr-2"/>}
-                  Add Subject
+                <Button onClick={handleAddSubject} disabled={isPending} className="w-full sm:w-auto">
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <PlusCircle className="h-4 w-4 sm:mr-2"/>}
+                  <span className="sm:inline">Add Subject</span>
                 </Button>
             </div>
         </CardContent>
@@ -216,104 +216,102 @@ export default function SubjectsPage() {
       
       <Card>
         <CardHeader>
-            <CardTitle>Manage Existing Subjects</CardTitle>
-            <CardDescription>Add, edit, or delete chapters for each subject.</CardDescription>
+            <CardTitle>Existing Subjects</CardTitle>
         </CardHeader>
         <CardContent>
             {subjects.length > 0 ? (
                 <Accordion type="multiple" className="w-full">
                     {subjects.map(subject => (
                     <AccordionItem value={String(subject.id)} key={subject.id}>
-                        <div className="flex items-center group">
-                            <AccordionTrigger className="text-lg font-semibold hover:no-underline py-4 flex-grow" onClick={() => handleAccordionToggle(subject.id)}>
+                        <div className="flex items-center group justify-between hover:bg-accent/50 rounded-md pr-2">
+                            <AccordionTrigger className="text-lg font-semibold hover:no-underline py-3 px-4 flex-grow" onClick={() => handleAccordionToggle(subject.id)}>
                                 <div className="flex items-center gap-3">
                                     <BookOpen className="h-5 w-5 text-muted-foreground" />
                                     <span className="flex-grow text-left">{subject.name}</span>
                                 </div>
                             </AccordionTrigger>
-                            {!editingSubject && !editingChapter && (
-                                <div className="flex items-center mr-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button variant="ghost" size="icon" disabled={isPending} onClick={(e) => {e.stopPropagation(); startEditingSubject(subject)}}><Edit className="h-4 w-4"/></Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isPending} onClick={e => e.stopPropagation()}><Trash2 className="h-4 w-4"/></Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This will delete the subject &quot;{subject.name}&quot; and all its chapters. This action cannot be undone.
-                                            </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteSubject(subject.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                            )}
+                            
+                            <div className="flex items-center">
+                                <Button variant="ghost" size="icon" disabled={isPending} onClick={() => startEditingSubject(subject)}><Edit className="h-4 w-4"/></Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isPending}><Trash2 className="h-4 w-4"/></Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will delete the subject &quot;{subject.name}&quot; and ALL its chapters and notes. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteSubject(subject.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
                         </div>
-                        <AccordionContent>
+
+                        <AccordionContent className="pt-2">
                         {editingSubject?.id === subject.id ? (
-                            <div className="flex gap-2 w-full p-4" onClick={e => e.stopPropagation()}>
-                                <Input value={editedValue} onChange={e => setEditedValue(e.target.value)} className="h-8" onKeyDown={e => { if(e.key === 'Enter') handleUpdateSubject()}}/>
-                                <Button size="icon" className="h-8 w-8" onClick={handleUpdateSubject} disabled={isPending}><Save className="h-4 w-4"/></Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingSubject(null)}><X className="h-4 w-4"/></Button>
+                            <div className="flex gap-2 w-full p-4 bg-secondary/50 rounded-b-md" onClick={e => e.stopPropagation()}>
+                                <Input value={editedValue} onChange={e => setEditedValue(e.target.value)} className="h-9" onKeyDown={e => { if(e.key === 'Enter') handleUpdateSubject()}} autoFocus/>
+                                <Button size="sm" onClick={handleUpdateSubject} disabled={isPending}><Save className="h-4 w-4 mr-2"/>Save</Button>
+                                <Button size="sm" variant="ghost" onClick={() => setEditingSubject(null)}><X className="h-4 w-4 mr-2"/>Cancel</Button>
                             </div>
                         ) : (
-                            <div className="space-y-4 pl-8 pt-2">
-                                <ul className="flex flex-col gap-2">
+                            <div className="space-y-4 pl-4 sm:pl-8">
+                                <ul className="flex flex-col gap-2 pt-2">
                                     {chapters[subject.id]?.map(chapter => (
-                                        <li key={chapter.id} className="flex items-center gap-3 p-2 rounded-md group hover:bg-secondary">
-                                        <FileText className="h-4 w-4 text-muted-foreground" />
-                                        {editingChapter?.id === chapter.id ? (
-                                                <div className="flex gap-2 w-full">
-                                                    <Input value={editedValue} onChange={e => setEditedValue(e.target.value)} className="h-8" onKeyDown={e => e.key === 'Enter' && handleUpdateChapter()}/>
-                                                    <Button size="icon" className="h-8 w-8" onClick={handleUpdateChapter} disabled={isPending}><Save className="h-4 w-4"/></Button>
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingChapter(null)}><X className="h-4 w-4"/></Button>
-                                                </div>
-                                        ) : (
-                                            <>
-                                                <span className="flex-grow text-foreground/90">{chapter.name}</span>
-                                                {!editingSubject && !editingChapter && (
-                                                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Button variant="ghost" size="icon" disabled={isPending} onClick={() => startEditingChapter(chapter, subject.id)}><Edit className="h-4 w-4"/></Button>
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="ghost" size="icon" disabled={isPending} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                                <AlertDialogDescription>This will permanently delete the chapter &quot;{chapter.name}&quot;.</AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleDeleteChapter(chapter.id, subject.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
+                                        <li key={chapter.id} className="flex items-center gap-2 p-2 rounded-md group hover:bg-secondary">
+                                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                          {editingChapter?.id === chapter.id ? (
+                                              <div className="flex gap-2 w-full items-center">
+                                                  <Input value={editedValue} onChange={e => setEditedValue(e.target.value)} className="h-8 flex-grow" onKeyDown={e => e.key === 'Enter' && handleUpdateChapter()} autoFocus/>
+                                                  <Button size="icon" className="h-8 w-8" onClick={handleUpdateChapter} disabled={isPending}><Save className="h-4 w-4"/></Button>
+                                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingChapter(null)}><X className="h-4 w-4"/></Button>
+                                              </div>
+                                          ) : (
+                                              <>
+                                                  <span className="flex-grow text-foreground/90 break-words">{chapter.name}</span>
+                                                  <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                      <Button variant="ghost" size="icon" disabled={isPending} onClick={() => startEditingChapter(chapter, subject.id)}><Edit className="h-4 w-4"/></Button>
+                                                      <AlertDialog>
+                                                          <AlertDialogTrigger asChild>
+                                                              <Button variant="ghost" size="icon" disabled={isPending} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                                                          </AlertDialogTrigger>
+                                                          <AlertDialogContent>
+                                                              <AlertDialogHeader>
+                                                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                              <AlertDialogDescription>This will permanently delete the chapter &quot;{chapter.name}&quot; and its associated notes.</AlertDialogDescription>
+                                                              </AlertDialogHeader>
+                                                              <AlertDialogFooter>
+                                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                              <AlertDialogAction onClick={() => handleDeleteChapter(chapter.id, subject.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                                              </AlertDialogFooter>
+                                                          </AlertDialogContent>
+                                                      </AlertDialog>
+                                                  </div>
+                                              </>
+                                          )}
                                         </li>
                                     ))}
-                                    {!chapters[subject.id] && <Loader2 className="h-4 w-4 animate-spin my-2" />}
+                                    {!chapters[subject.id] && <div className="flex justify-center p-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
                                     {chapters[subject.id] && chapters[subject.id].length === 0 && (
-                                        <li className="text-muted-foreground p-2 text-sm">No chapters yet. Add one below.</li>
+                                        <li className="text-muted-foreground px-2 py-4 text-sm text-center">No chapters yet. Add one below.</li>
                                     )}
                                 </ul>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                     <Input
                                         placeholder="Add new chapter..."
                                         value={newChapterName[subject.id] || ''}
                                         onChange={e => setNewChapterName({ ...newChapterName, [subject.id]: e.target.value })}
                                         onKeyDown={e => e.key === 'Enter' && handleAddChapter(subject.id)}
                                         disabled={isPending}
+                                        className="flex-grow"
                                     />
-                                    <Button onClick={() => handleAddChapter(subject.id)} variant="secondary" disabled={isPending}>
+                                    <Button onClick={() => handleAddChapter(subject.id)} variant="secondary" disabled={isPending} className="w-full sm:w-auto">
                                         <PlusCircle className="h-4 w-4 mr-2"/>Add Chapter
                                     </Button>
                                 </div>
