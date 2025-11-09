@@ -30,8 +30,7 @@ import {
 import { PlusCircle, Edit, Trash2, Loader2, Search, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { deleteMultipleNotesAction, deleteNoteAction } from './actions';
-import { getNotesAdmin } from '@/lib/data';
+import { deleteMultipleNotesAction, deleteNoteAction, getNotesAdmin } from './actions';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
@@ -68,7 +67,7 @@ export default function AdminNotesPage() {
     if (!lowercasedFilter) return allNotes;
     return allNotes.filter((note) =>
       note.topic_title.toLowerCase().includes(lowercasedFilter) ||
-      note.subject_name.toLowerCase().includes(lowercasedFilter) ||
+      (note.subject_name && note.subject_name.toLowerCase().includes(lowercasedFilter)) ||
       (note.chapter_name && note.chapter_name.toLowerCase().includes(lowercasedFilter))
     );
   }, [searchTerm, allNotes]);

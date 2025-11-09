@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import type { Note } from '@/lib/types';
+import type { Note, NoteWithRelations } from '@/lib/types';
 import { z } from 'zod';
 import { getNoteByIdAdmin } from '@/lib/data';
 
@@ -31,6 +31,32 @@ async function handleFileUpload(file: File): Promise<string> {
 
     return publicUrl;
 }
+
+export async function getNotesAdmin(): Promise<{ notes: NoteWithRelations[]; error?: string }> {
+    const { data, error } = await supabaseAdmin
+        .from('notes')
+        .select(`
+            *,
+            subjects (name),
+            chapters (name)
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching notes:', error);
+        return { notes: [], error: error.message };
+    }
+
+    const transformedData = data.map(note => ({
+        ...note,
+        subject_name: note.subjects?.name ?? 'N/A',
+        chapter_name: note.chapters?.name ?? null,
+    }));
+
+
+    return { notes: transformedData as unknown as NoteWithRelations[] };
+}
+
 
 export async function createNoteAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
     const rawData = Object.fromEntries(formData.entries());
