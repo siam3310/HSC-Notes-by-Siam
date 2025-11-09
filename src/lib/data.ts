@@ -1,14 +1,13 @@
+
 import { supabase } from './supabase';
 import { supabaseAdmin } from './supabaseAdmin';
-import type { Note, NoteWithRelations, Subject, Chapter, NoteImage } from './types';
-import { revalidatePath } from 'next/cache';
+import type { NoteWithRelations, Subject, Chapter } from './types';
 
 // =================================================================
 // PUBLIC-FACING FUNCTIONS (using anon key)
 // =================================================================
 
 export async function getSubjects(): Promise<string[]> {
-  // Fetch subjects that have at least one published note.
   const { data, error } = await supabase
     .from('notes')
     .select(`
@@ -21,11 +20,8 @@ export async function getSubjects(): Promise<string[]> {
     return [];
   }
 
-  // Create a unique list of subject names from the notes.
-  // The 'Set' object automatically handles duplicates.
   const subjectNames = [...new Set(data.map(item => item.subjects?.name).filter(Boolean) as string[])];
   
-  // Sort the names alphabetically.
   subjectNames.sort();
 
   return subjectNames;
@@ -159,36 +155,4 @@ export async function getNotesAdmin(): Promise<{ notes: NoteWithRelations[]; err
 
 
     return { notes: transformedData as unknown as NoteWithRelations[] };
-}
-
-export async function deleteMultipleNotesAdmin(ids: number[]): Promise<{ success: boolean; error?: string }> {
-    if (!ids || ids.length === 0) {
-        return { success: false, error: 'No note IDs provided.' };
-    }
-    
-    // RLS with "ON DELETE CASCADE" should handle note_images, but explicit deletion is safer.
-    const { error: imageDeleteError } = await supabaseAdmin
-        .from('note_images')
-        .delete()
-        .in('note_id', ids);
-
-    if (imageDeleteError) {
-        console.error('Error deleting associated images for multiple notes:', imageDeleteError);
-        return { success: false, error: imageDeleteError.message };
-    }
-
-    const { error } = await supabaseAdmin
-        .from('notes')
-        .delete()
-        .in('id', ids);
-
-    if (error) {
-        console.error('Error deleting multiple notes:', error);
-        return { success: false, error: error.message };
-    }
-
-    revalidatePath('/admin/notes');
-    revalidatePath('/admin');
-    revalidatePath('/subjects', 'layout');
-    return { success: true };
 }
