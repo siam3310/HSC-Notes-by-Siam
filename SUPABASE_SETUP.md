@@ -2,16 +2,18 @@
 
 Follow these steps to set up your Supabase project. You can run all of this SQL code at once in the Supabase SQL Editor.
 
-**Important:** This schema will first **DROP** (delete) your existing `notes` table to replace it with a new, structured version. This will remove all your current notes.
+**Important:** This schema will first **DROP** (delete) your existing `notes`, `chapters`, and `subjects` tables to replace them with a new, structured version. This will remove all your current data.
 
 ## 1. Full SQL Schema
 
 Go to the **SQL Editor** in your Supabase project dashboard and run the following SQL command.
 
 ```sql
--- Drop the old 'notes' table if it exists, to apply the new schema.
--- WARNING: This will delete all existing data in the notes table.
+-- Drop old tables if they exist to apply the new schema.
+-- WARNING: This will delete all existing data.
 DROP TABLE IF EXISTS public.notes;
+DROP TABLE IF EXISTS public.chapters;
+DROP TABLE IF EXISTS public.subjects;
 
 -- 1. Create the 'subjects' table to store subject names.
 CREATE TABLE public.subjects (
@@ -88,7 +90,6 @@ ON public.notes
 FOR ALL
 TO service_role
 USING (true);
-
 ```
 
 ## 2. Setup Storage for PDF Uploads
@@ -151,65 +152,20 @@ SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 To add some example notes to your database, run the following SQL in the **SQL Editor**:
 
 ```sql
--- Insert subjects
-INSERT INTO public.subjects (name) VALUES ('Physics'), ('Chemistry'), ('Math') ON CONFLICT (name) DO NOTHING;
-
--- Get subject IDs
-DO $$
-DECLARE
-    physics_id BIGINT;
-    chemistry_id BIGINT;
-    math_id BIGINT;
-BEGIN
-    SELECT id INTO physics_id FROM public.subjects WHERE name = 'Physics';
-    SELECT id INTO chemistry_id FROM public.subjects WHERE name = 'Chemistry';
-    SELECT id INTO math_id FROM public.subjects WHERE name = 'Math';
-
-    -- Insert chapters
-    INSERT INTO public.chapters (subject_id, name) VALUES
-    (physics_id, 'Chapter 1: Physical World and Measurement'),
-    (physics_id, 'Chapter 2: Kinematics'),
-    (chemistry_id, 'Chapter 1: Some Basic Concepts of Chemistry'),
-    (chemistry_id, 'Chapter 2: Structure of Atom'),
-    (math_id, 'Chapter 1: Sets')
-    ON CONFLICT (subject_id, name) DO NOTHING;
-
-END $$;
-
--- Insert notes
-DO $$
-DECLARE
-    physics_id BIGINT;
-    chem_id BIGINT;
-    math_id BIGINT;
-    ch1_phys_id BIGINT;
-    ch2_phys_id BIGINT;
-    ch1_chem_id BIGINT;
-    ch2_chem_id BIGINT;
-    ch1_math_id BIGINT;
-BEGIN
-    -- Get subject IDs
-    SELECT id INTO physics_id FROM public.subjects WHERE name = 'Physics';
-    SELECT id INTO chem_id FROM public.subjects WHERE name = 'Chemistry';
-    SELECT id INTO math_id FROM public.subjects WHERE name = 'Math';
-
-    -- Get chapter IDs
-    SELECT id INTO ch1_phys_id FROM public.chapters WHERE subject_id = physics_id AND name = 'Chapter 1: Physical World and Measurement';
-    SELECT id INTO ch2_phys_id FROM public.chapters WHERE subject_id = physics_id AND name = 'Chapter 2: Kinematics';
-    SELECT id INTO ch1_chem_id FROM public.chapters WHERE subject_id = chem_id AND name = 'Chapter 1: Some Basic Concepts of Chemistry';
-    SELECT id INTO ch2_chem_id FROM public.chapters WHERE subject_id = chem_id AND name = 'Chapter 2: Structure of Atom';
-    SELECT id INTO ch1_math_id FROM public.chapters WHERE subject_id = math_id AND name = 'Chapter 1: Sets';
-
-    -- Insert notes
-    INSERT INTO public.notes (subject_id, chapter_id, topic_title, content, pdf_url, is_published)
-    VALUES
-    (physics_id, ch1_phys_id, 'Units and Measurements', 'This is a note about the fundamental and derived units in physics.', 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', TRUE),
-    (physics_id, ch1_phys_id, 'Errors in Measurement', 'Discussing systematic and random errors.', 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', TRUE),
-    (physics_id, ch2_phys_id, 'Motion in a Straight Line', 'Key concepts of kinematics.', NULL, TRUE),
-    (chem_id, ch1_chem_id, 'Mole Concept', 'The mole is the unit of amount in chemistry.', NULL, TRUE),
-    (chem_id, ch1_chem_id, 'Stoichiometry', 'Calculations based on chemical equations.', NULL, FALSE),
-    (chem_id, ch2_chem_id, 'Bohrs Model', 'Explaining the model of an atom.', NULL, TRUE),
-    (math_id, ch1_math_id, 'Introduction to Sets', 'A set is a collection of distinct objects.', NULL, TRUE);
-
-END $$;
+-- Insert the new list of subjects provided by the user.
+INSERT INTO public.subjects (name) VALUES
+('বাংলা ১ম পত্র'),
+('বাংলা ২য় পত্র'),
+('English 1st Paper'),
+('English 2nd Paper'),
+('তথ্য ও যোগাযোগ প্রযুক্তি'),
+('পৌরনীতি ও সুশাসন ১ম পত্র'),
+('পৌরনীতি ও সুশাসন ২য় পত্র'),
+('সমাজকর্ম ১ম পত্র'),
+('সমাজকর্ম ২য় পত্র'),
+('ইসলামের ইতিহাস ও সংস্কৃতি ১ম পত্র'),
+('ইসলামের ইতিহাস ও সংস্কৃতি ২য় পত্র'),
+('ভূগোল ১ম পত্র'),
+('ভূগোল ২য় পত্র')
+ON CONFLICT (name) DO NOTHING;
 ```
