@@ -20,16 +20,17 @@ interface NotePageProps {
 }
 
 export default function NotePage({ params }: NotePageProps) {
-  const noteId = parseInt(params.noteId, 10);
   const [note, setNote] = useState<NoteWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const noteId = parseInt(params.noteId, 10);
     if (isNaN(noteId)) {
       notFound();
     }
 
     const fetchNote = async () => {
+      setLoading(true);
       const fetchedNote = await getNoteById(noteId);
       if (!fetchedNote) {
         notFound();
@@ -39,7 +40,7 @@ export default function NotePage({ params }: NotePageProps) {
     };
 
     fetchNote();
-  }, [noteId]);
+  }, [params.noteId]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
