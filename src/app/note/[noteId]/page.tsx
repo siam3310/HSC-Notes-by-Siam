@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { PdfViewer } from '@/components/PdfViewer';
+import Image from 'next/image';
 
 
 interface NotePageProps {
@@ -27,10 +28,19 @@ export default async function NotePage({ params }: NotePageProps) {
   }
   
   const content = note.content || '';
+  const fileUrl = note.pdf_url;
 
-  const isGoogleDriveUrl = note.pdf_url && note.pdf_url.includes('drive.google.com');
-  const googleDriveEmbedUrl = isGoogleDriveUrl ? note.pdf_url?.replace('/view', '/preview') : '';
-
+  const isGoogleDriveUrl = fileUrl && fileUrl.includes('drive.google.com');
+  const googleDriveEmbedUrl = isGoogleDriveUrl ? fileUrl?.replace('/view', '/preview') : '';
+  
+  const isPdf = fileUrl && fileUrl.toLowerCase().endsWith('.pdf');
+  const isImage = fileUrl && (
+    fileUrl.toLowerCase().endsWith('.png') ||
+    fileUrl.toLowerCase().endsWith('.jpg') ||
+    fileUrl.toLowerCase().endsWith('.jpeg') ||
+    fileUrl.toLowerCase().endsWith('.gif') ||
+    fileUrl.toLowerCase().endsWith('.webp')
+  );
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -55,13 +65,22 @@ export default async function NotePage({ params }: NotePageProps) {
             <div className="h-[200vh]">
               <iframe src={googleDriveEmbedUrl} width="100%" height="100%" frameBorder="0" className="w-full h-full"></iframe>
             </div>
-          ) : note.pdf_url ? (
+        ) : isPdf ? (
             <div className="h-[200vh]">
-              <PdfViewer fileUrl={note.pdf_url} />
+              <PdfViewer fileUrl={fileUrl} />
             </div>
-          ) : null}
+        ) : isImage ? (
+            <div className="relative w-full aspect-video">
+                <Image 
+                    src={fileUrl}
+                    alt={note.topic_title}
+                    fill
+                    className="object-contain"
+                />
+            </div>
+        ) : null}
 
-        {content && note.pdf_url && <Separator className="my-0" />}
+        {content && fileUrl && <Separator className="my-0" />}
 
         {content && (
            <div className="p-6 sm:p-8">
@@ -69,7 +88,7 @@ export default async function NotePage({ params }: NotePageProps) {
            </div>
         )}
 
-        {!note.pdf_url && !content && (
+        {!fileUrl && !content && (
             <p className="text-muted-foreground text-center py-20">No content available for this note.</p>
         )}
       </article>

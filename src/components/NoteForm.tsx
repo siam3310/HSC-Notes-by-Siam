@@ -33,8 +33,7 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from './ui/textarea';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_FILE_TYPES = ["application/pdf"];
+const ACCEPTED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"];
 
 const noteFormSchema = z.object({
   subject_id: z.coerce.number().positive({ message: 'Please select a subject.' }),
@@ -46,10 +45,9 @@ const noteFormSchema = z.object({
   pdf_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   pdf_file: z
     .any()
-    .refine((files) => !files || files?.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
     .refine(
       (files) => !files || files?.length === 0 || ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-      "Only .pdf files are accepted."
+      "Only .pdf, .jpg, .png, .gif, .webp files are accepted."
     ),
   is_published: z.boolean().default(false),
 });
@@ -260,7 +258,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                                     />
                                 </FormControl>
                                 <FormDescription>
-                                Add text content if there is no PDF.
+                                Add text content if there is no PDF or Image.
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
@@ -272,12 +270,12 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         name="pdf_file"
                         render={({ field: { value, onChange, ...fieldProps } }) => (
                             <FormItem>
-                                <FormLabel>Upload PDF</FormLabel>
+                                <FormLabel>Upload PDF or Image</FormLabel>
                                 <FormControl>
                                     <Input 
                                         {...fieldProps}
                                         type="file" 
-                                        accept=".pdf"
+                                        accept="application/pdf,image/*"
                                         onChange={(e) => {
                                         const file = e.target.files && e.target.files[0];
                                         onChange(file ? [file] : null);
@@ -288,7 +286,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                                     />
                                 </FormControl>
                                 <FormDescription>
-                                    Upload a PDF file directly (max 5MB). This will override the PDF URL field.
+                                    Upload a PDF or an Image file directly. This will override the URL field.
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
@@ -309,7 +307,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                     name="pdf_url"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>PDF URL (Optional)</FormLabel>
+                        <FormLabel>File URL (Optional)</FormLabel>
                         <FormControl>
                             <Input 
                                 placeholder="https://example.com/note.pdf" 
@@ -323,7 +321,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                             />
                         </FormControl>
                         <FormDescription>
-                            Link to an external PDF. This will be ignored if a file is uploaded.
+                            Link to an external PDF or Image. This will be ignored if a file is uploaded.
                         </FormDescription>
                         <FormMessage />
                         </FormItem>
@@ -367,5 +365,3 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
-
-    

@@ -69,17 +69,17 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
 
     try {
         const validatedData = noteSchema.parse(rawData);
-        let pdfUrl = validatedData.pdf_url || null;
+        let fileUrl = validatedData.pdf_url || null;
 
         if (file && file.size > 0) {
-            pdfUrl = await handleFileUpload(file);
+            fileUrl = await handleFileUpload(file);
         }
 
         const noteDataToInsert: Omit<Note, 'id' | 'created_at'> = {
             subject_id: validatedData.subject_id,
             chapter_id: validatedData.chapter_id || null,
             topic_title: validatedData.topic_title,
-            pdf_url: pdfUrl,
+            pdf_url: fileUrl,
             content: validatedData.content || null,
             is_published: validatedData.is_published,
         };
@@ -109,11 +109,11 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
    
     try {
         const validatedData = noteSchema.parse(rawData);
-        let pdfUrl = validatedData.pdf_url;
+        let fileUrl = validatedData.pdf_url;
 
         // If there's a new file, upload it and get the new URL
         if (file && file.size > 0) {
-            pdfUrl = await handleFileUpload(file);
+            fileUrl = await handleFileUpload(file);
         }
 
         const noteDataToUpdate = {
@@ -121,7 +121,7 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
             subject_id: validatedData.subject_id,
             chapter_id: validatedData.chapter_id || null,
             is_published: validatedData.is_published,
-            pdf_url: pdfUrl || null,
+            pdf_url: fileUrl || null,
             content: validatedData.content || null,
         };
 
