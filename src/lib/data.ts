@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { supabaseAdmin } from './supabaseAdmin';
-import type { Note, NoteWithRelations, Subject, Chapter } from './types';
+import type { Note, NoteWithRelations, Subject, Chapter, NoteImage } from './types';
 
 // =================================================================
 // PUBLIC-FACING FUNCTIONS (using anon key)
@@ -63,7 +63,8 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
     .select(`
       *,
       subjects (name),
-      chapters (name)
+      chapters (name),
+      note_images (id, image_url)
     `)
     .eq('id', noteId)
     .single();
@@ -83,6 +84,7 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
     ...data,
     subject_name: data.subjects.name,
     chapter_name: data.chapters?.name ?? null,
+    images: data.note_images || [],
   };
 
   return transformedData as unknown as NoteWithRelations;
@@ -93,10 +95,13 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
 // ADMIN-ONLY FUNCTIONS (using service_role key)
 // =================================================================
 
-export async function getNoteByIdAdmin(noteId: number): Promise<Note | null> {
+export async function getNoteByIdAdmin(noteId: number): Promise<NoteWithRelations | null> {
   const { data, error } = await supabaseAdmin
     .from('notes')
-    .select('*')
+    .select(`
+        *,
+        note_images(id, image_url)
+    `)
     .eq('id', noteId)
     .single();
 
@@ -104,7 +109,12 @@ export async function getNoteByIdAdmin(noteId: number): Promise<Note | null> {
     console.error(`Error fetching note with id ${noteId} for admin:`, error);
     return null;
   }
-  return data as Note;
+  const transformedData = {
+    ...data,
+    images: data.note_images || [],
+  };
+
+  return transformedData as unknown as NoteWithRelations;
 }
 
 

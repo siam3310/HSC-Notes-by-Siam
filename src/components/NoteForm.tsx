@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -23,17 +23,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { Note, Subject, Chapter } from '@/lib/types';
+import type { NoteWithRelations, Subject, Chapter } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { createNoteAction, updateNoteAction } from '@/app/admin/notes/actions';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from './ui/textarea';
+import Image from 'next/image';
 
-const ACCEPTED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"];
+const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 const noteFormSchema = z.object({
   subject_id: z.coerce.number().positive({ message: 'Please select a subject.' }),
@@ -42,20 +43,23 @@ const noteFormSchema = z.object({
     message: 'Topic title must be at least 3 characters.',
   }),
   content: z.string().optional(),
-  pdf_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
-  pdf_file: z
+  images: z
     .any()
-    .refine(
-      (files) => !files || files?.length === 0 || ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-      "Only .pdf, .jpg, .png, .gif, .webp files are accepted."
-    ),
+    .refine((files) => {
+        if (!files || files.length === 0) return true;
+        for(let i = 0; i < files.length; i++) {
+            if(!ACCEPTED_FILE_TYPES.includes(files[i].type)) return false;
+        }
+        return true;
+    }, "Only .jpg, .png, .gif, .webp files are accepted."),
+  images_to_delete: z.array(z.number()).optional(),
   is_published: z.boolean().default(false),
 });
 
 type NoteFormValues = z.infer<typeof noteFormSchema>;
 
 interface NoteFormProps {
-  note?: Note | null;
+  note?: NoteWithRelations | null;
   subjects: Subject[];
   chapters: Chapter[];
 }
@@ -71,18 +75,18 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         chapter_id: note.chapter_id,
         topic_title: note.topic_title,
         content: note.content || '',
-        pdf_url: note.pdf_url || '',
         is_published: note.is_published,
-        pdf_file: undefined,
+        images: undefined,
+        images_to_delete: [],
       }
     : {
         subject_id: 0,
         chapter_id: null,
         topic_title: '',
         content: '',
-        pdf_url: '',
         is_published: false,
-        pdf_file: undefined,
+        images: undefined,
+        images_to_delete: [],
       };
 
   const form = useForm<NoteFormValues>({
@@ -116,19 +120,28 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   const onSubmit = async (data: NoteFormValues) => {
     const formData = new FormData();
     
+    // Append all fields except files
     Object.entries(data).forEach(([key, value]) => {
-        if (key === 'pdf_file') {
-            if (value && value.length > 0) {
-                formData.append(key, value[0]);
-            }
-        } else if (value !== null && value !== undefined) {
-            if (key === 'chapter_id' && (value === 0 || value === '0')) {
-              // Don't append if it's the "No Chapter" placeholder
+        if (key !== 'images' && key !== 'images_to_delete' && value !== null && value !== undefined) {
+             if (key === 'chapter_id' && (value === 0 || value === '0')) {
+                // Don't append if it's the "No Chapter" placeholder
             } else {
               formData.append(key, String(value));
             }
         }
     });
+
+    // Append files
+    if (data.images) {
+        for (let i = 0; i < data.images.length; i++) {
+            formData.append('images', data.images[i]);
+        }
+    }
+    
+    // Append images to delete
+    if (data.images_to_delete) {
+        formData.append('images_to_delete', JSON.stringify(data.images_to_delete));
+    }
 
     try {
         let result;
@@ -156,6 +169,14 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         });
     }
   };
+
+  const handleDeleteImage = (imageId: number) => {
+    const currentImagesToDelete = form.getValues('images_to_delete') || [];
+    form.setValue('images_to_delete', [...currentImagesToDelete, imageId]);
+  };
+  
+  const imagesToDelete = form.watch('images_to_delete') || [];
+
 
   return (
     <div className="w-full space-y-6">
@@ -207,7 +228,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         name="chapter_id"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Chapter Name (Optional)</FormLabel>
+                            <FormLabel>Chapter (Optional)</FormLabel>
                                 <Select 
                                     onValueChange={(value) => field.onChange(value === '0' ? null : Number(value))} 
                                     value={String(field.value ?? '0')} 
@@ -258,74 +279,55 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                                     />
                                 </FormControl>
                                 <FormDescription>
-                                Add text content if there is no PDF or Image.
+                                Add text content for the note.
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
 
+                    {isEditMode && note?.images && note.images.length > 0 && (
+                        <FormItem>
+                            <FormLabel>Current Images</FormLabel>
+                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {note.images.filter(img => !imagesToDelete.includes(img.id)).map(image => (
+                                    <div key={image.id} className="relative group">
+                                        <Image src={image.image_url} alt="Current note image" width={200} height={200} className="rounded-md object-cover aspect-square"/>
+                                        <div className="absolute top-1 right-1">
+                                            <Button type="button" variant="destructive" size="icon" className="h-7 w-7 opacity-80 group-hover:opacity-100" onClick={() => handleDeleteImage(image.id)}>
+                                                <Trash2 className="h-4 w-4"/>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <FormDescription>Click the trash icon to remove an image on update.</FormDescription>
+                        </FormItem>
+                    )}
+
+
                     <FormField
                         control={form.control}
-                        name="pdf_file"
-                        render={({ field: { value, onChange, ...fieldProps } }) => (
+                        name="images"
+                        render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Upload PDF or Image</FormLabel>
+                                <FormLabel>Upload Images</FormLabel>
                                 <FormControl>
                                     <Input 
-                                        {...fieldProps}
                                         type="file" 
-                                        accept="application/pdf,image/*"
+                                        accept="image/*"
+                                        multiple
                                         onChange={(e) => {
-                                        const file = e.target.files && e.target.files[0];
-                                        onChange(file ? [file] : null);
-                                        if (file) {
-                                            form.setValue('pdf_url', ''); // Clear URL field if file is selected
-                                        }
+                                            field.onChange(e.target.files);
                                         }}
                                     />
                                 </FormControl>
                                 <FormDescription>
-                                    Upload a PDF or an Image file directly. This will override the URL field.
+                                    {isEditMode ? "Upload new images to add to this note." : "Upload one or more images for this note."}
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
-                    />
-
-                    <div className="relative my-2">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-card px-2 text-muted-foreground">Or</span>
-                        </div>
-                    </div>
-
-                    <FormField
-                    control={form.control}
-                    name="pdf_url"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>File URL (Optional)</FormLabel>
-                        <FormControl>
-                            <Input 
-                                placeholder="https://example.com/note.pdf" 
-                                {...field} 
-                                onChange={(e) => {
-                                    field.onChange(e);
-                                    if (e.target.value) {
-                                        form.setValue('pdf_file', null); // Clear file input if URL is entered
-                                    }
-                                }}
-                            />
-                        </FormControl>
-                        <FormDescription>
-                            Link to an external PDF or Image. This will be ignored if a file is uploaded.
-                        </FormDescription>
-                        <FormMessage />
-                        </FormItem>
-                    )}
                     />
 
                     <FormField
