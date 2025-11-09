@@ -1,3 +1,4 @@
+
 import { getNoteById } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -61,10 +62,9 @@ export default async function NotePage({ params }: NotePageProps) {
         {content && note.pdf_url && <Separator className="my-0" />}
 
         {content && (
-           <div
-              className="prose dark:prose-invert max-w-none p-6 sm:p-8"
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
+           <div className="p-6 sm:p-8">
+             <p className="whitespace-pre-wrap text-foreground/90">{content}</p>
+           </div>
         )}
 
         {!note.pdf_url && !content && (
@@ -76,3 +76,5 @@ export default async function NotePage({ params }: NotePageProps) {
 }
 
 export const revalidate = 60; // Revalidate every 60 seconds
+
+    

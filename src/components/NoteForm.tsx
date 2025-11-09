@@ -29,11 +29,9 @@ import { useToast } from '@/hooks/use-toast';
 import { createNoteAction, updateNoteAction } from '@/app/admin/notes/actions';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-
-const RichTextEditor = dynamic(() => import('./RichTextEditor'), { ssr: false, loading: () => <div className="min-h-[300px] w-full rounded-md border bg-card flex items-center justify-center"><Loader2 className="animate-spin h-6 w-6"/></div> });
+import { Textarea } from './ui/textarea';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["application/pdf"];
@@ -239,20 +237,21 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                     )}
                     />
 
-                    <Controller
-                        name="content"
+                    <FormField
                         control={form.control}
+                        name="content"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Content (Optional)</FormLabel>
                                 <FormControl>
-                                    <RichTextEditor
-                                        value={field.value}
-                                        onChange={field.onChange}
+                                    <Textarea
+                                        placeholder="Start writing your note here..."
+                                        className="min-h-[200px]"
+                                        {...field}
                                     />
                                 </FormControl>
                                 <FormDescription>
-                                Add rich text content if there is no PDF.
+                                Add text content if there is no PDF.
                                 </FormDescription>
                                 <FormMessage />
                             </FormItem>
@@ -359,3 +358,5 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
+
+    
