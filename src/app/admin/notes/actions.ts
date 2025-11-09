@@ -7,6 +7,8 @@ import type { Note, NoteWithRelations } from '@/lib/types';
 import { z } from 'zod';
 import { getNoteByIdAdmin } from '@/lib/data';
 
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const ACCEPTED_PDF_TYPE = "application/pdf";
 
 const noteSchema = z.object({
   topic_title: z.string().min(3, "Topic title must be at least 3 characters long."),
@@ -14,38 +16,51 @@ const noteSchema = z.object({
   chapter_id: z.coerce.number().optional().nullable(),
   content: z.string().optional(),
   is_published: z.boolean(),
-  new_pdf_urls: z.array(z.string()).optional(),
-  new_image_urls: z.array(z.string()).optional(),
+  new_pdf_urls: z.array(z.string().url()).optional(),
+  new_image_urls: z.array(z.string().url()).optional(),
 });
 
-export async function uploadFileAction(formData: FormData): Promise<{ url: string | null, error: string | null }> {
-    const file = formData.get('file') as File;
 
-    if (!file) {
-        return { url: null, error: 'No file provided.' };
+export async function uploadFileAction(formData: FormData): Promise<{ url: string | null, error: string | null }> {
+    const file = formData.get('file') as File | null;
+    const fileType = formData.get('fileType') as string | null;
+
+    if (!file || !fileType) {
+        return { url: null, error: 'No file or file type provided.' };
     }
 
-    try {
-        const filePath = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
-        const { data, error } = await supabaseAdmin.storage
-            .from('notes-pdfs')
-            .upload(filePath, file, {
-                cacheControl: '3600',
-                upsert: false,
-                contentType: file.type,
-            });
+    const isImage = fileType.startsWith('image/');
+    const isPdf = fileType === 'application/pdf';
 
-        if (error) {
-            throw error;
+    if (!isImage && !isPdf) {
+        return { url: null, error: 'Unsupported file type.' };
+    }
+    
+    const folder = isImage ? 'images' : 'pdfs';
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    const filePath = `${folder}/${fileName}`;
+
+    try {
+        const { data, error: uploadError } = await supabaseAdmin.storage
+            .from('notes-pdfs')
+            .upload(filePath, file);
+
+        if (uploadError) {
+            console.error('Supabase Upload Error:', uploadError);
+            throw new Error(uploadError.message);
         }
 
         const { data: { publicUrl } } = supabaseAdmin.storage.from('notes-pdfs').getPublicUrl(filePath);
 
+        if (!publicUrl) {
+            throw new Error('Could not get public URL for uploaded file.');
+        }
+        
         return { url: publicUrl, error: null };
 
     } catch (error: any) {
-        console.error('Upload Error from Server Action:', error);
-        return { url: null, error: error.message };
+        console.error('Upload Action Error:', error);
+        return { url: null, error: error.message || 'An unknown error occurred during file upload.' };
     }
 }
 

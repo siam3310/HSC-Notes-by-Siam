@@ -101,20 +101,24 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   }, [selectedSubjectId, chapters, form, isEditMode]);
   
   const handleFileUpload = useCallback(async (file: File) => {
-    const fileType = file.type === ACCEPTED_PDF_TYPE ? 'pdf' : 'image';
+    const fileIsPdf = file.type === ACCEPTED_PDF_TYPE;
+    const setter = fileIsPdf ? setPdfUploads : setImageUploads;
     const newUpload: FileUpload = { id: uuidv4(), file, progress: 0 };
-    const setter = fileType === 'pdf' ? setPdfUploads : setImageUploads;
-
-    setter(prev => [...prev, newUpload]);
+    
+    // For PDFs, we only allow one. Replace any existing/failed one.
+    if (fileIsPdf) {
+        setPdfUploads([newUpload]);
+    } else {
+        setter(prev => [...prev, newUpload]);
+    }
 
     const formData = new FormData();
     formData.append('file', file);
-    
-    // Simulate progress while waiting for server action
+    formData.append('fileType', file.type); // Explicitly send the file type
+
     const progressInterval = setInterval(() => {
         setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: Math.min(up.progress + 10, 90) } : up));
     }, 200);
-
 
     try {
         const result = await uploadFileAction(formData);
@@ -129,7 +133,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     } catch (error: any) {
         clearInterval(progressInterval);
         console.error('Upload Error:', error);
-        setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 0, error: error.message } : up));
+        setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 0, error: error.message || 'An unexpected error occurred.' } : up));
         toast({
             variant: 'destructive',
             title: `Upload Failed for ${file.name}`,
@@ -143,23 +147,23 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
       if (!files) return;
 
       Array.from(files).forEach(file => {
-        if (file.type === ACCEPTED_PDF_TYPE) {
-            // Replace existing PDF upload if a new one is selected
-            setPdfUploads([]);
+        if (file.type === ACCEPTED_PDF_TYPE || ACCEPTED_IMAGE_TYPES.includes(file.type)) {
             handleFileUpload(file);
-        } else if (ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-            handleFileUpload(file);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid File Type',
+                description: `File type ${file.type} is not supported.`,
+            });
         }
       });
       
-      e.target.value = ''; // Reset input to allow re-selection of the same file
+      e.target.value = ''; 
   };
   
-  const removeUpload = (id: string, fileType: 'pdf' | 'image') => {
-      const setter = fileType === 'pdf' ? setPdfUploads : setImageUploads;
+  const removeUpload = (id: string, isPdf: boolean) => {
+      const setter = isPdf ? setPdfUploads : setImageUploads;
       setter(prev => prev.filter(up => up.id !== id));
-      // Optionally, add logic to delete from Supabase storage if already uploaded.
-      // For now, we assume deletion only happens on form submit (via imagesToDelete/pdfsToDelete)
   };
 
   const onSubmit = async (data: NoteFormValues) => {
@@ -275,7 +279,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                     />
 
                     <div className="space-y-4">
-                        <FormLabel>{(isEditMode && note?.pdfs && note.pdfs.length > 0) ? "Manage Files" : "Upload Files (Optional)"}</FormLabel>
+                        <FormLabel>{(isEditMode && (note?.pdfs?.length || 0 > 0 || note?.images?.length || 0 > 0)) ? "Manage Files" : "Upload Files (Optional)"}</FormLabel>
                          {isEditMode && note?.pdfs?.filter(pdf => !pdfsToDelete.includes(pdf.id)).map(pdf => (
                             <div key={pdf.id} className="relative group flex items-center gap-4 p-3 border rounded-md bg-secondary/50">
                                  <a href={pdf.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{decodeURIComponent(pdf.pdf_url.split('/').pop()?.substring(14) ?? 'PDF Document')}</a>
@@ -305,10 +309,11 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                                 multiple
                                 onChange={handleFileSelection}
                                 disabled={isSubmitting}
+                                className="h-auto p-2"
                             />
                         </FormControl>
-                        {pdfUploads.map(upload => <FileUploadProgress key={upload.id} upload={upload} onRemove={() => removeUpload(upload.id, 'pdf')}/>)}
-                        {imageUploads.map(upload => <FileUploadProgress key={upload.id} upload={upload} onRemove={() => removeUpload(upload.id, 'image')}/>)}
+                        {pdfUploads.map(upload => <FileUploadProgress key={upload.id} upload={upload} onRemove={() => removeUpload(upload.id, true)}/>)}
+                        {imageUploads.map(upload => <FileUploadProgress key={upload.id} upload={upload} onRemove={() => removeUpload(upload.id, false)}/>)}
                         <FormDescription>Upload PDF or image files. Upload will start immediately.</FormDescription>
                     </div>
 
