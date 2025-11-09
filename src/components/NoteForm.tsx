@@ -46,7 +46,7 @@ const noteFormSchema = z.object({
   pdf: z.any().optional(),
   images_to_delete: z.array(z.number()).optional(),
   pdf_to_delete: z.boolean().optional(),
-  is_published: z.boolean().default(false),
+  is_published: z.enum(['true', 'false']).transform(val => val === 'true'),
 });
 
 type NoteFormValues = z.infer<typeof noteFormSchema>;
@@ -121,8 +121,9 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         }
     }
     // Append PDF file
-    if (data.pdf && data.pdf[0]) {
-        formData.append('pdf', data.pdf[0]);
+    const newPdfFile = (data.pdf?.[0] as File | null);
+    if (newPdfFile) {
+        formData.append('pdf', newPdfFile);
     }
 
     try {
@@ -222,7 +223,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Content (Optional)</FormLabel>
-                            <FormControl><Textarea placeholder="Start writing your note here..." className="min-h-[200px]" {...field} /></FormControl>
+                            <FormControl><Textarea placeholder="Start writing your note here..." className="min-h-[200px]" {...field} value={field.value || ''} /></FormControl>
                             <FormDescription>Add optional text content for the note.</FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -329,3 +330,4 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
+
