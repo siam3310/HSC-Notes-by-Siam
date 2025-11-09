@@ -60,9 +60,9 @@ export default async function NotePage({ params }: NotePageProps) {
           <h1 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">{note.topic_title}</h1>
         </header>
 
-        <div className="space-y-8">
+        <div className="space-y-8 py-8">
           {hasImages && (
-            <div className="p-4 sm:p-8">
+            <div className="px-4 sm:px-8">
               <h2 className="text-2xl font-semibold mb-4">Images</h2>
               <Carousel className="w-full max-w-full">
                 <CarouselContent>
