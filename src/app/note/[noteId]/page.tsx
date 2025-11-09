@@ -1,15 +1,16 @@
 
+
 'use client';
 
 import { getNoteById } from '@/lib/data';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { PdfViewer } from '@/components/PdfViewer';
-import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { NoteWithRelations } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
@@ -98,15 +99,30 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
                                 />
                             </div>
                         </DialogTrigger>
-                        <DialogContent className="max-w-5xl h-[90vh] bg-transparent border-0 shadow-none">
-                             <DialogTitle className="sr-only">Enlarged Note Image</DialogTitle>
-                             <DialogDescription className="sr-only">An enlarged view of the note image for {note.topic_title}.</DialogDescription>
+                        <DialogContent 
+                          className="w-screen h-screen p-0 bg-transparent border-0 shadow-none flex items-center justify-center"
+                          closeButton={false}
+                        >
+                           <DialogClose asChild>
+                              <div className="absolute inset-0 bg-black/70" />
+                           </DialogClose>
+                           <div 
+                              className="relative z-10 w-[90vw] h-[90vh]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                              <Image 
                                 src={image.image_url}
                                 alt={`Note image for ${note.topic_title}`}
-                                layout="fill"
+                                fill
                                 className="object-contain"
-                            />
+                              />
+                              <Button asChild size="lg" className="absolute bottom-[-60px] left-1/2 -translate-x-1/2">
+                                <a href={image.image_url} download>
+                                    <Download className="mr-2 h-5 w-5"/>
+                                    Download
+                                </a>
+                              </Button>
+                           </div>
                         </DialogContent>
                   </Dialog>
                 ))}
