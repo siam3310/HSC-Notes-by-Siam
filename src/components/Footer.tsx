@@ -3,7 +3,7 @@ import { Shield } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="bg-card/50 py-6 mt-12 border-t">
+    <footer className="bg-card/50 py-4 mt-12 border-t">
       <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4">
         <p className="text-center sm:text-left text-sm text-muted-foreground">
           &copy; {new Date().getFullYear()} HSC Hand Notes. All content by Siam.

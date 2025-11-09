@@ -20,10 +20,10 @@ export function Header() {
   return (
     <header className="bg-card/95 sticky top-0 z-50 border-b">
       <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center py-4">
+        <div className="flex justify-between items-center py-2">
           <Link
             href="/"
-            className="flex items-center gap-2 text-lg font-bold text-foreground bg-secondary px-4 py-2 rounded-lg"
+            className="flex items-center gap-2 text-lg font-bold text-foreground bg-secondary px-3 py-1 rounded-lg"
           >
             <BookText className="h-6 w-6 text-primary"/>
             <h1>HSC Hand Notes</h1>
