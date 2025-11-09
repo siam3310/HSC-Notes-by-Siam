@@ -16,22 +16,31 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { Note } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { createNoteAction, updateNoteAction } from '@/app/admin/actions';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { subjectChapters, subjects } from '@/lib/subjects';
+import { useState } from 'react';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["application/pdf"];
 
 const noteFormSchema = z.object({
   subject: z.string().min(2, {
-    message: 'Subject must be at least 2 characters.',
+    message: 'Please select a subject.',
   }),
   chapter_name: z.string().min(3, {
-    message: 'Chapter name must be at least 3 characters.',
+    message: 'Please select a chapter.',
   }),
   topic_title: z.string().min(3, {
     message: 'Topic title must be at least 3 characters.',
@@ -83,6 +92,10 @@ export function NoteForm({ note }: NoteFormProps) {
     resolver: zodResolver(noteFormSchema),
     defaultValues,
   });
+
+  const selectedSubject = form.watch('subject');
+  const chaptersForSelectedSubject = selectedSubject ? subjectChapters[selectedSubject as keyof typeof subjectChapters] || [] : [];
+
 
   const onSubmit = async (data: NoteFormValues) => {
     const formData = new FormData();
@@ -147,30 +160,51 @@ export function NoteForm({ note }: NoteFormProps) {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
-                    control={form.control}
-                    name="subject"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="subject"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Subject</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Physics" {...field} />
-                        </FormControl>
-                        <FormMessage />
+                          <FormLabel>Subject</FormLabel>
+                          <Select onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue('chapter_name', ''); // Reset chapter when subject changes
+                          }} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a subject" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {subjects.map(subject => (
+                                <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
                     <FormField
-                    control={form.control}
-                    name="chapter_name"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="chapter_name"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Chapter Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Chapter 1: Kinematics" {...field} />
-                        </FormControl>
-                        <FormMessage />
+                          <FormLabel>Chapter Name</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!selectedSubject}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a chapter" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {chaptersForSelectedSubject.map(chapter => (
+                                    <SelectItem key={chapter} value={chapter}>{chapter}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
                 </div>
                 <FormField
@@ -199,6 +233,9 @@ export function NoteForm({ note }: NoteFormProps) {
                             {...field}
                         />
                     </FormControl>
+                     <FormDescription>
+                        You can add simple HTML content if there is no PDF.
+                    </FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}
@@ -207,14 +244,18 @@ export function NoteForm({ note }: NoteFormProps) {
                 <FormField
                     control={form.control}
                     name="pdf_file"
-                    render={({ field }) => (
+                    render={({ field: { value, onChange, ...fieldProps } }) => (
                         <FormItem>
                             <FormLabel>Upload PDF</FormLabel>
                             <FormControl>
                                 <Input 
+                                    {...fieldProps}
                                     type="file" 
                                     accept=".pdf"
-                                    onChange={(e) => field.onChange(e.target.files)}
+                                    onChange={(e) => {
+                                      const file = e.target.files && e.target.files[0];
+                                      onChange(file ? [file] : null);
+                                    }}
                                 />
                             </FormControl>
                             <FormDescription>
