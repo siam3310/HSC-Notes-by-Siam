@@ -112,7 +112,7 @@ export async function deleteSubjectAction(id: number): Promise<{ success: boolea
 
 const chapterSchema = z.object({
     name: z.string().min(2, "Chapter name must be at least 2 characters long."),
-    subject_id: z.number().positive(),
+    subject_id: z.coerce.number().positive(),
 });
 
 export async function getChaptersForSubjectAction(subjectId: number): Promise<{ chapters: Chapter[], error?: string }> {
@@ -209,3 +209,5 @@ export async function deleteChapterAction(id: number): Promise<{ success: boolea
     revalidatePath('/admin/new');
     return { success: true };
 }
+
+    

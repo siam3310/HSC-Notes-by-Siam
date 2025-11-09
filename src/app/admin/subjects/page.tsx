@@ -41,10 +41,11 @@ export default function SubjectsPage() {
   const fetchSubjects = async () => {
     setLoading(true);
     const result = await getSubjectsAction();
-    if (result.success && result.subjects) {
-      setSubjects(result.subjects);
-    } else {
+    if (result.error) {
       toast({ variant: 'destructive', title: 'Error fetching subjects', description: result.error });
+      setSubjects([]);
+    } else {
+      setSubjects(result.subjects);
     }
     setLoading(false);
   };
@@ -52,7 +53,7 @@ export default function SubjectsPage() {
   const handleAccordionToggle = async (subjectId: number) => {
     if (!chapters[subjectId]) {
       const result = await getChaptersForSubjectAction(subjectId);
-      if (result.success && result.chapters) {
+      if (result.chapters) {
         setChapters(prev => ({ ...prev, [subjectId]: result.chapters }));
       } else {
         toast({ variant: 'destructive', title: 'Error fetching chapters', description: result.error });
@@ -119,7 +120,11 @@ export default function SubjectsPage() {
       if (result.success) {
         toast({ title: 'Success', description: 'Chapter added successfully.' });
         setNewChapterName({ ...newChapterName, [subjectId]: '' });
-        handleAccordionToggle(subjectId); // Refetch chapters
+        // Refetch chapters for the specific subject to show the new one
+        const chaptersResult = await getChaptersForSubjectAction(subjectId);
+        if (chaptersResult.chapters) {
+          setChapters(prev => ({ ...prev, [subjectId]: chaptersResult.chapters }));
+        }
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.error });
       }
@@ -218,8 +223,8 @@ export default function SubjectsPage() {
             {subjects.length > 0 ? (
                 <Accordion type="multiple" className="w-full">
                     {subjects.map(subject => (
-                    <AccordionItem value={String(subject.id)} key={subject.id} onFocus={() => handleAccordionToggle(subject.id)}>
-                        <AccordionTrigger className="text-lg font-semibold hover:no-underline py-4 group">
+                    <AccordionItem value={String(subject.id)} key={subject.id}>
+                        <AccordionTrigger className="text-lg font-semibold hover:no-underline py-4 group" onClick={() => handleAccordionToggle(subject.id)}>
                         <div className="flex items-center gap-3 flex-grow">
                             <BookOpen className="h-5 w-5 text-muted-foreground" />
                             {editingSubject?.id === subject.id ? (
@@ -326,3 +331,5 @@ export default function SubjectsPage() {
     </div>
   );
 }
+
+    
