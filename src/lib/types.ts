@@ -18,13 +18,19 @@ export interface NoteImage {
   created_at: string;
 }
 
+export interface NotePdf {
+  id: number;
+  note_id: number;
+  pdf_url: string;
+  created_at: string;
+}
+
 export interface Note {
   id: number;
   subject_id: number;
   chapter_id: number | null;
   topic_title: string;
   content?: string | null;
-  pdf_url?: string | null;
   is_published: boolean;
   created_at: string;
 }
@@ -34,4 +40,5 @@ export interface NoteWithRelations extends Note {
   subject_name: string;
   chapter_name: string | null;
   images?: NoteImage[];
+  pdfs?: NotePdf[];
 }

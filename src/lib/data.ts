@@ -61,7 +61,8 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
       *,
       subjects (name),
       chapters (name),
-      note_images (id, image_url)
+      note_images (id, image_url),
+      note_pdfs (id, pdf_url)
     `)
     .eq('id', noteId)
     .single();
@@ -82,6 +83,7 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
     subject_name: data.subjects.name,
     chapter_name: data.chapters?.name ?? null,
     images: data.note_images || [],
+    pdfs: data.note_pdfs || [],
   };
 
   return transformedData as unknown as NoteWithRelations;
@@ -123,7 +125,8 @@ export async function getNoteByIdAdmin(noteId: number): Promise<NoteWithRelation
     .from('notes')
     .select(`
         *,
-        note_images(id, image_url)
+        note_images(id, image_url),
+        note_pdfs(id, pdf_url)
     `)
     .eq('id', noteId)
     .single();
@@ -135,6 +138,7 @@ export async function getNoteByIdAdmin(noteId: number): Promise<NoteWithRelation
   const transformedData = {
     ...data,
     images: data.note_images || [],
+    pdfs: data.note_pdfs || [],
   };
 
   return transformedData as unknown as NoteWithRelations;

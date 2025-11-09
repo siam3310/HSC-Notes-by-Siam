@@ -3,11 +3,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import type { Note, NoteWithRelations } from '@/lib/types';
+import type { Note } from '@/lib/types';
 import { z } from 'zod';
 import { getNoteByIdAdmin } from '@/lib/data';
 
-// Main schema for the note form
 const noteSchema = z.object({
   topic_title: z.string().min(3, "Topic title must be at least 3 characters long."),
   subject_id: z.coerce.number().positive("Please select a subject."),
@@ -36,9 +35,8 @@ async function handleFileUpload(file: File): Promise<string> {
 export async function createNoteAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
     const rawData = Object.fromEntries(formData.entries());
     
-    // Correctly get files. formData.get('pdf') might not work as expected.
     const newImages = formData.getAll('images').filter(f => f instanceof File && f.size > 0) as File[];
-    const newPdfFile = (formData.get('pdf') as File | null);
+    const newPdfFile = formData.get('pdf') as File | null;
 
     try {
         const validatedData = noteSchema.parse(rawData);
@@ -47,13 +45,7 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
             ...validatedData,
             chapter_id: validatedData.chapter_id || null,
             content: validatedData.content || '',
-            pdf_url: null, // Start with null PDF URL
         };
-
-        // Handle PDF Upload
-        if (newPdfFile && newPdfFile.size > 0) {
-            noteDataToInsert.pdf_url = await handleFileUpload(newPdfFile);
-        }
 
         const { data: note, error } = await supabaseAdmin
             .from('notes')
@@ -65,16 +57,19 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
             throw error || new Error('Failed to create note.');
         }
 
+        // Handle PDF Upload
+        if (newPdfFile && newPdfFile.size > 0) {
+            const pdfUrl = await handleFileUpload(newPdfFile);
+            const { error: pdfError } = await supabaseAdmin.from('note_pdfs').insert([{ note_id: note.id, pdf_url: pdfUrl }]);
+            if (pdfError) throw pdfError;
+        }
+
         // Handle Image Uploads
         if (newImages.length > 0) {
             const uploadPromises = newImages.map(file => handleFileUpload(file));
             const imageUrls = await Promise.all(uploadPromises);
             
-            const imageInsertions = imageUrls.map(url => ({
-                note_id: note.id,
-                image_url: url
-            }));
-
+            const imageInsertions = imageUrls.map(url => ({ note_id: note.id, image_url: url }));
             const { error: imageError } = await supabaseAdmin.from('note_images').insert(imageInsertions);
             if (imageError) throw imageError;
         }
@@ -96,44 +91,42 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
     const newPdfFile = (formData.get('pdf') as File | null);
     
     const imagesToDelete = JSON.parse(formData.get('images_to_delete') as string || '[]') as number[];
-    const pdfToDelete = (formData.get('pdf_to_delete') === 'true');
+    const pdfsToDelete = JSON.parse(formData.get('pdfs_to_delete') as string || '[]') as number[];
 
     try {
         const validatedData = noteSchema.parse(rawData);
         const existingNote = await getNoteByIdAdmin(id);
         if (!existingNote) throw new Error("Note not found.");
 
-        // 1. Delete marked images
+        // 1. Delete marked images and PDFs
         if (imagesToDelete.length > 0) {
-            const { error: deleteError } = await supabaseAdmin.from('note_images').delete().in('id', imagesToDelete);
-            if (deleteError) throw deleteError;
+            const { error } = await supabaseAdmin.from('note_images').delete().in('id', imagesToDelete);
+            if (error) throw error;
+        }
+        if (pdfsToDelete.length > 0) {
+            const { error } = await supabaseAdmin.from('note_pdfs').delete().in('id', pdfsToDelete);
+            if (error) throw error;
         }
 
-        // 2. Upload new images
+        // 2. Upload new images and PDFs
         if (newImages.length > 0) {
             const uploadPromises = newImages.map(file => handleFileUpload(file));
             const imageUrls = await Promise.all(uploadPromises);
-            
             const imageInsertions = imageUrls.map(url => ({ note_id: id, image_url: url }));
-            const { error: imageError } = await supabaseAdmin.from('note_images').insert(imageInsertions);
-            if (imageError) throw imageError;
-        }
-
-        // 3. Handle PDF
-        let finalPdfUrl = existingNote.pdf_url;
-        if (pdfToDelete) {
-            finalPdfUrl = null;
+            const { error } = await supabaseAdmin.from('note_images').insert(imageInsertions);
+            if (error) throw error;
         }
         if (newPdfFile && newPdfFile.size > 0) {
-            finalPdfUrl = await handleFileUpload(newPdfFile);
+            const pdfUrl = await handleFileUpload(newPdfFile);
+            const { error } = await supabaseAdmin.from('note_pdfs').insert([{ note_id: id, pdf_url: pdfUrl }]);
+            if (error) throw error;
         }
         
-        // 4. Update note details
+        // 3. Update note details
         const noteDataToUpdate = {
             ...validatedData,
             chapter_id: validatedData.chapter_id || null,
             content: validatedData.content || '',
-            pdf_url: finalPdfUrl,
         };
 
         const { error } = await supabaseAdmin.from('notes').update(noteDataToUpdate).eq('id', id);
@@ -173,21 +166,19 @@ export async function deleteMultipleNotesAction(ids: number[]): Promise<{ succes
         return { success: false, error: 'No note IDs provided.' };
     }
 
-    const { error: imageDeleteError } = await supabaseAdmin
-        .from('note_images')
-        .delete()
-        .in('note_id', ids);
-
+    const { error: imageDeleteError } = await supabaseAdmin.from('note_images').delete().in('note_id', ids);
     if (imageDeleteError) {
         console.error('Error deleting associated images for multiple notes:', imageDeleteError);
-        return { success: false, error: imageDeleteError.message };
+        // non-critical, continue
     }
 
-    const { error } = await supabaseAdmin
-        .from('notes')
-        .delete()
-        .in('id', ids);
+    const { error: pdfDeleteError } = await supabaseAdmin.from('note_pdfs').delete().in('note_id', ids);
+    if (pdfDeleteError) {
+        console.error('Error deleting associated pdfs for multiple notes:', pdfDeleteError);
+        // non-critical, continue
+    }
 
+    const { error } = await supabaseAdmin.from('notes').delete().in('id', ids);
     if (error) {
         console.error('Error deleting multiple notes:', error);
         return { success: false, error: error.message };

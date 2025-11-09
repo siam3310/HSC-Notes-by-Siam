@@ -51,11 +51,11 @@ export default function NotePage({ params }: NotePageProps) {
 
   const content = note.content || '';
   const images = note.images || [];
-  const pdfUrl = note.pdf_url;
+  const pdfs = note.pdfs || [];
 
   const hasContent = !!content;
   const hasImages = images.length > 0;
-  const hasPdf = !!pdfUrl;
+  const hasPdfs = pdfs.length > 0;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -117,17 +117,17 @@ export default function NotePage({ params }: NotePageProps) {
              </div>
           )}
 
-          {hasPdf && (
+          {hasPdfs && pdfs[0] && (
             <div className="px-6 sm:px-8">
               <h2 className="text-2xl font-semibold mb-4">PDF Document</h2>
               <div className="h-[800px] w-full rounded-lg border overflow-hidden">
-                <PdfViewer fileUrl={pdfUrl} />
+                <PdfViewer fileUrl={pdfs[0].pdf_url} />
               </div>
             </div>
           )}
         </div>
 
-        {!hasImages && !hasPdf && !hasContent && (
+        {!hasImages && !hasPdfs && !hasContent && (
             <p className="text-muted-foreground text-center py-20">No content available for this note.</p>
         )}
       </article>

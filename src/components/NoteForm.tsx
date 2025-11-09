@@ -45,7 +45,7 @@ const noteFormSchema = z.object({
   images: z.any().optional(),
   pdf: z.any().optional(),
   images_to_delete: z.array(z.number()).optional(),
-  pdf_to_delete: z.boolean().optional(),
+  pdfs_to_delete: z.array(z.number()).optional(),
   is_published: z.boolean(),
 });
 
@@ -73,7 +73,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         images: undefined,
         pdf: undefined,
         images_to_delete: [],
-        pdf_to_delete: false,
+        pdfs_to_delete: [],
       },
   });
 
@@ -86,15 +86,13 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     } else {
       setChaptersForSelectedSubject([]);
     }
-    // Do not reset chapter_id if we are in edit mode and the subject hasn't changed from initial load
     if (form.formState.isDirty && 'subject_id' in form.formState.dirtyFields) {
         form.setValue('chapter_id', null);
     }
   }, [selectedSubjectId, chapters, form]);
 
   useEffect(() => {
-    if (isEditMode && note?.subject_id) {
-       setChaptersForSelectedSubject(chapters.filter(c => c.subject_id === note.subject_id));
+    if (isEditMode && note) {
        form.reset({
         subject_id: note.subject_id,
         chapter_id: note.chapter_id,
@@ -104,8 +102,11 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         images: undefined,
         pdf: undefined,
         images_to_delete: [],
-        pdf_to_delete: false,
+        pdfs_to_delete: [],
        });
+       if(note.subject_id) {
+         setChaptersForSelectedSubject(chapters.filter(c => c.subject_id === note.subject_id));
+       }
     }
   }, [isEditMode, note, chapters, form]);
 
@@ -113,12 +114,11 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   const onSubmit = async (data: NoteFormValues) => {
     const formData = new FormData();
     
-    // Append all fields from the form data object except files
     Object.entries(data).forEach(([key, value]) => {
         if (key === 'images' || key === 'pdf') return;
         if (value !== null && value !== undefined) {
              if (key === 'chapter_id' && (value === 0 || value === '0')) return;
-             if (key === 'images_to_delete') {
+             if (key === 'images_to_delete' || key === 'pdfs_to_delete') {
                  formData.append(key, JSON.stringify(value));
              } else {
                  formData.append(key, String(value));
@@ -126,13 +126,11 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         }
     });
 
-    // Append image files
     if (data.images && data.images.length > 0) {
         for (let i = 0; i < data.images.length; i++) {
             formData.append('images', data.images[i]);
         }
     }
-    // Append PDF file
     if (data.pdf && data.pdf.length > 0) {
       formData.append('pdf', data.pdf[0]);
     }
@@ -162,16 +160,19 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   };
 
   const handleDeleteImage = (imageId: number) => {
-    const currentImagesToDelete = form.getValues('images_to_delete') || [];
-    form.setValue('images_to_delete', [...currentImagesToDelete, imageId]);
+    const current = form.getValues('images_to_delete') || [];
+    form.setValue('images_to_delete', [...current, imageId]);
   };
   
-  const handleDeletePdf = () => {
-    form.setValue('pdf_to_delete', true);
+  const handleDeletePdf = (pdfId: number) => {
+    const current = form.getValues('pdfs_to_delete') || [];
+    form.setValue('pdfs_to_delete', [...current, pdfId]);
   };
   
   const imagesToDelete = form.watch('images_to_delete') || [];
-  const pdfToDelete = form.watch('pdf_to_delete');
+  const pdfsToDelete = form.watch('pdfs_to_delete') || [];
+
+  const currentPdfs = note?.pdfs?.filter(pdf => !pdfsToDelete.includes(pdf.id)) || [];
 
   return (
     <div className="w-full space-y-6">
@@ -192,7 +193,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Subject</FormLabel>
-                                <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={field.value ? String(field.value) : undefined} value={field.value ? String(field.value) : undefined}>
+                                <Select onValueChange={(value) => field.onChange(Number(value))} value={field.value ? String(field.value) : undefined}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Select a subject" /></SelectTrigger></FormControl>
                                 <SelectContent>
                                     {subjects.map(subject => <SelectItem key={subject.id} value={String(subject.id)}>{subject.name}</SelectItem>)}
@@ -241,30 +242,33 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         )}
                     />
 
-                    {isEditMode && note?.pdf_url && !pdfToDelete && (
+                    {isEditMode && currentPdfs.length > 0 && (
                          <FormItem>
                             <FormLabel>Current PDF</FormLabel>
-                            <div className="relative group flex items-center gap-4 p-3 border rounded-md">
-                                <FileText className="h-6 w-6 text-muted-foreground" />
-                                <a href={note.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{decodeURIComponent(note.pdf_url.split('/').pop() ?? '')}</a>
-                                <Button type="button" variant="destructive" size="icon" className="h-7 w-7 opacity-80 group-hover:opacity-100" onClick={handleDeletePdf}>
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
-                            </div>
+                            {currentPdfs.map(pdf => (
+                                <div key={pdf.id} className="relative group flex items-center gap-4 p-3 border rounded-md">
+                                    <FileText className="h-6 w-6 text-muted-foreground" />
+                                    <a href={pdf.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{decodeURIComponent(pdf.pdf_url.split('/').pop() ?? '')}</a>
+                                    <Button type="button" variant="destructive" size="icon" className="h-7 w-7 opacity-80 group-hover:opacity-100" onClick={() => handleDeletePdf(pdf.id)}>
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
+                                </div>
+                            ))}
                         </FormItem>
                     )}
 
                     <FormField
                         control={form.control}
                         name="pdf"
-                        render={({ field }) => (
+                        render={({ field: { onChange, ...fieldProps } }) => (
                             <FormItem>
-                                <FormLabel>{(isEditMode && note?.pdf_url && !pdfToDelete) ? "Replace PDF" : "Upload PDF (Optional)"}</FormLabel>
+                                <FormLabel>{(isEditMode && currentPdfs.length > 0) ? "Replace PDF" : "Upload PDF (Optional)"}</FormLabel>
                                 <FormControl>
                                     <Input 
+                                        {...fieldProps}
                                         type="file" 
                                         accept={ACCEPTED_PDF_TYPE}
-                                        onChange={(e) => field.onChange(e.target.files)}
+                                        onChange={(e) => onChange(e.target.files)}
                                     />
                                 </FormControl>
                                 <FormDescription>Upload a single PDF file for this note.</FormDescription>
@@ -297,15 +301,16 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                      <FormField
                         control={form.control}
                         name="images"
-                        render={({ field }) => (
+                        render={({ field: { onChange, ...fieldProps } }) => (
                             <FormItem>
                                 <FormLabel>{(isEditMode && note?.images && note.images.length > 0) ? "Add More Images" : "Upload Images (Optional)"}</FormLabel>
                                 <FormControl>
                                     <Input 
+                                        {...fieldProps}
                                         type="file" 
                                         accept={ACCEPTED_IMAGE_TYPES.join(',')} 
                                         multiple 
-                                        onChange={(e) => field.onChange(e.target.files)}
+                                        onChange={(e) => onChange(e.target.files)}
                                     />
                                 </FormControl>
                                 <FormDescription>Upload one or more images for this note.</FormDescription>
@@ -339,5 +344,3 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
-
-    
