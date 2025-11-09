@@ -224,42 +224,44 @@ export default function SubjectsPage() {
                 <Accordion type="multiple" className="w-full">
                     {subjects.map(subject => (
                     <AccordionItem value={String(subject.id)} key={subject.id}>
-                        <AccordionTrigger className="text-lg font-semibold hover:no-underline py-4 group" onClick={() => handleAccordionToggle(subject.id)}>
-                        <div className="flex items-center gap-3 flex-grow">
-                            <BookOpen className="h-5 w-5 text-muted-foreground" />
-                            {editingSubject?.id === subject.id ? (
-                                <div className="flex gap-2 w-full">
-                                    <Input value={editedValue} onChange={e => setEditedValue(e.target.value)} className="h-8" onKeyDown={e => e.key === 'Enter' && handleUpdateSubject()}/>
-                                    <Button size="icon" className="h-8 w-8" onClick={handleUpdateSubject} disabled={isPending}><Save className="h-4 w-4"/></Button>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingSubject(null)}><X className="h-4 w-4"/></Button>
+                        <div className="flex items-center group">
+                            <AccordionTrigger className="text-lg font-semibold hover:no-underline py-4 flex-grow" onClick={() => handleAccordionToggle(subject.id)}>
+                                <div className="flex items-center gap-3">
+                                    <BookOpen className="h-5 w-5 text-muted-foreground" />
+                                    {editingSubject?.id === subject.id ? (
+                                        <div className="flex gap-2 w-full">
+                                            <Input value={editedValue} onChange={e => setEditedValue(e.target.value)} className="h-8" onClick={e => e.stopPropagation()} onKeyDown={e => { e.stopPropagation(); if(e.key === 'Enter') handleUpdateSubject()}}/>
+                                            <Button size="icon" className="h-8 w-8" onClick={(e) => {e.stopPropagation(); handleUpdateSubject()}} disabled={isPending}><Save className="h-4 w-4"/></Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => {e.stopPropagation(); setEditingSubject(null)}}><X className="h-4 w-4"/></Button>
+                                        </div>
+                                    ) : (
+                                        <span className="flex-grow text-left">{subject.name}</span>
+                                    )}
                                 </div>
-                            ) : (
-                                <span className="flex-grow text-left">{subject.name}</span>
+                            </AccordionTrigger>
+                            {!editingSubject && !editingChapter && (
+                                <div className="flex items-center mr-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button variant="ghost" size="icon" disabled={isPending} onClick={(e) => {e.stopPropagation(); startEditingSubject(subject)}}><Edit className="h-4 w-4"/></Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isPending} onClick={e => e.stopPropagation()}><Trash2 className="h-4 w-4"/></Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This will delete the subject &quot;{subject.name}&quot; and all its chapters. This action cannot be undone.
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteSubject(subject.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
                             )}
                         </div>
-                         {!editingSubject && !editingChapter && (
-                            <div className="flex items-center mr-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button variant="ghost" size="icon" disabled={isPending} onClick={(e) => {e.stopPropagation(); startEditingSubject(subject)}}><Edit className="h-4 w-4"/></Button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isPending} onClick={e => e.stopPropagation()}><Trash2 className="h-4 w-4"/></Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This will delete the subject &quot;{subject.name}&quot; and all its chapters. This action cannot be undone.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteSubject(subject.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                         )}
-                        </AccordionTrigger>
                         <AccordionContent>
                         <div className="space-y-4 pl-8 pt-2">
                              <ul className="flex flex-col gap-2">
@@ -331,5 +333,3 @@ export default function SubjectsPage() {
     </div>
   );
 }
-
-    
