@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { getNoteById } from '@/lib/data';
@@ -31,6 +30,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
     
     if (isNaN(noteId)) {
       notFound();
+      return;
     }
 
     const fetchNote = async () => {
@@ -38,6 +38,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
       const fetchedNote = await getNoteById(noteId);
       if (!fetchedNote) {
         notFound();
+        return;
       }
       setNote(fetchedNote);
       setLoading(false);
@@ -106,7 +107,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
                             <DialogTitle className="sr-only">Enlarged view of note image</DialogTitle>
                             <DialogDescription className="sr-only">An enlarged, fullscreen view of the note image for {note.topic_title}.</DialogDescription>
                             
-                            <DialogClose className="absolute top-4 right-4 z-50">
+                            <DialogClose asChild className="absolute top-4 right-4 z-50">
                                 <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/50 hover:bg-black/70 text-white hover:text-white">
                                     <X className="h-8 w-8" />
                                 </Button>
