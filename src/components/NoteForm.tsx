@@ -123,7 +123,7 @@ export function NoteForm({ note }: NoteFormProps) {
                 title: isEditMode ? 'Note Updated' : 'Note Created',
                 description: `Successfully ${isEditMode ? 'updated' : 'created'} "${data.topic_title}".`,
             });
-            router.push('/admin');
+            router.push('/admin/notes');
             router.refresh();
         } else {
             throw new Error(result.error || 'Operation failed');
@@ -138,193 +138,184 @@ export function NoteForm({ note }: NoteFormProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-            <Link href="/admin">
-                <Button variant="ghost" className="text-muted-foreground">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Admin Dashboard
-                </Button>
-            </Link>
-        </div>
-        <div className="bg-card p-6 sm:p-8 rounded-lg border">
-            <header className="border-b pb-4 mb-6">
-                 <h1 className="text-3xl font-bold tracking-tight">
-                    {isEditMode ? 'Edit Note' : 'Create New Note'}
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                    {isEditMode ? 'Update the details of the note.' : 'Fill in the details to create a new note.'}
-                </p>
-            </header>
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="subject"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Subject</FormLabel>
-                          <Select onValueChange={(value) => {
-                            field.onChange(value);
-                            form.setValue('chapter_name', ''); // Reset chapter when subject changes
-                          }} defaultValue={field.value}>
+    <div className="w-full space-y-6">
+        <header>
+            <h1 className="text-3xl font-bold tracking-tight">
+                {isEditMode ? 'Edit Note' : 'Create New Note'}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+                {isEditMode ? 'Update the details of the note.' : 'Fill in the details to create a new note.'}
+            </p>
+        </header>
+
+        <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="subject"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subject</FormLabel>
+                      <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('chapter_name', ''); // Reset chapter when subject changes
+                      }} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a subject" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {subjects.map(subject => (
+                            <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="chapter_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Chapter Name</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!selectedSubject}>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a subject" />
-                              </SelectTrigger>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a chapter" />
+                            </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {subjects.map(subject => (
-                                <SelectItem key={subject} value={subject}>{subject}</SelectItem>
-                              ))}
+                            {chaptersForSelectedSubject.map(chapter => (
+                                <SelectItem key={chapter} value={chapter}>{chapter}</SelectItem>
+                            ))}
                             </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                        </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+            </div>
+            <FormField
+            control={form.control}
+            name="topic_title"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Topic Title</FormLabel>
+                <FormControl>
+                    <Input placeholder="e.g., Motion in a Straight Line" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="content_html"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Content (HTML)</FormLabel>
+                <FormControl>
+                    <Textarea
+                        placeholder="<h1>Title</h1><p>Your note content here...</p>"
+                        className="min-h-[200px] font-mono"
+                        {...field}
                     />
-                    <FormField
-                      control={form.control}
-                      name="chapter_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Chapter Name</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!selectedSubject}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a chapter" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {chaptersForSelectedSubject.map(chapter => (
-                                    <SelectItem key={chapter} value={chapter}>{chapter}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                </FormControl>
+                 <FormDescription>
+                    You can add simple HTML content if there is no PDF.
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+
+            <FormField
+                control={form.control}
+                name="pdf_file"
+                render={({ field: { value, onChange, ...fieldProps } }) => (
+                    <FormItem>
+                        <FormLabel>Upload PDF</FormLabel>
+                        <FormControl>
+                            <Input 
+                                {...fieldProps}
+                                type="file" 
+                                accept=".pdf"
+                                onChange={(e) => {
+                                  const file = e.target.files && e.target.files[0];
+                                  onChange(file ? [file] : null);
+                                }}
+                            />
+                        </FormControl>
+                        <FormDescription>
+                            Upload a PDF file directly (max 5MB). This will override the PDF URL field.
+                        </FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or</span>
+                </div>
+            </div>
+
+            <FormField
+            control={form.control}
+            name="pdf_url"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>PDF URL (Optional)</FormLabel>
+                <FormControl>
+                    <Input placeholder="https://example.com/note.pdf" {...field} />
+                </FormControl>
+                 <FormDescription>
+                    Use this if you are linking to an external PDF instead of uploading.
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+
+            <FormField
+            control={form.control}
+            name="is_published"
+            render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-card p-4">
+                <div className="space-y-0.5">
+                    <FormLabel className="text-base">Publish Status</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                        Make this note visible to all users.
+                    </p>
+                </div>
+                <FormControl>
+                    <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
                     />
-                </div>
-                <FormField
-                control={form.control}
-                name="topic_title"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Topic Title</FormLabel>
-                    <FormControl>
-                        <Input placeholder="e.g., Motion in a Straight Line" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="content_html"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Content (HTML)</FormLabel>
-                    <FormControl>
-                        <Textarea
-                            placeholder="<h1>Title</h1><p>Your note content here...</p>"
-                            className="min-h-[200px] font-mono"
-                            {...field}
-                        />
-                    </FormControl>
-                     <FormDescription>
-                        You can add simple HTML content if there is no PDF.
-                    </FormDescription>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="pdf_file"
-                    render={({ field: { value, onChange, ...fieldProps } }) => (
-                        <FormItem>
-                            <FormLabel>Upload PDF</FormLabel>
-                            <FormControl>
-                                <Input 
-                                    {...fieldProps}
-                                    type="file" 
-                                    accept=".pdf"
-                                    onChange={(e) => {
-                                      const file = e.target.files && e.target.files[0];
-                                      onChange(file ? [file] : null);
-                                    }}
-                                />
-                            </FormControl>
-                            <FormDescription>
-                                Upload a PDF file directly (max 5MB). This will override the PDF URL field.
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card px-2 text-muted-foreground">Or</span>
-                    </div>
-                </div>
-
-                <FormField
-                control={form.control}
-                name="pdf_url"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>PDF URL (Optional)</FormLabel>
-                    <FormControl>
-                        <Input placeholder="https://example.com/note.pdf" {...field} />
-                    </FormControl>
-                     <FormDescription>
-                        Use this if you are linking to an external PDF instead of uploading.
-                    </FormDescription>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-
-                <FormField
-                control={form.control}
-                name="is_published"
-                render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                        <FormLabel className="text-base">Publish Status</FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                            Make this note visible to all users.
-                        </p>
-                    </div>
-                    <FormControl>
-                        <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        />
-                    </FormControl>
-                    </FormItem>
-                )}
-                />
-                <div className="flex justify-end gap-2">
-                    <Button type="button" variant="ghost" onClick={() => router.push('/admin')}>
-                        Cancel
-                    </Button>
-                    <Button type="submit" disabled={form.formState.isSubmitting} className="w-32">
-                        {form.formState.isSubmitting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : isEditMode ? 'Update Note' : 'Create Note'}
-                    </Button>
-                </div>
-            </form>
-            </Form>
-        </div>
+                </FormControl>
+                </FormItem>
+            )}
+            />
+            <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => router.push('/admin/notes')}>
+                    Cancel
+                </Button>
+                <Button type="submit" disabled={form.formState.isSubmitting} className="w-32">
+                    {form.formState.isSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : isEditMode ? 'Update Note' : 'Create Note'}
+                </Button>
+            </div>
+        </form>
+        </Form>
     </div>
   );
 }

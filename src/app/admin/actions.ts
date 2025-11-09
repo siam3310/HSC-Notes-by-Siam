@@ -32,7 +32,7 @@ export async function getNotesAction(): Promise<{ notes: Note[]; error?: string 
 
 
 async function handleFileUpload(file: File): Promise<string | null> {
-    const fileName = `${Date.now()}-${file.name}`;
+    const fileName = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
     const { data, error } = await supabaseAdmin.storage
         .from('notes-pdfs')
         .upload(fileName, file);
@@ -75,6 +75,7 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
             throw error;
         }
 
+        revalidatePath('/admin/notes');
         revalidatePath('/admin');
         return { success: true };
 
@@ -115,9 +116,10 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
             throw error;
         }
         
-        revalidatePath('/admin');
+        revalidatePath('/admin/notes');
         revalidatePath(`/admin/edit/${id}`);
         revalidatePath(`/note/${id}`);
+        revalidatePath('/admin');
         return { success: true };
 
     } catch (error: any) {
@@ -137,6 +139,7 @@ export async function deleteNoteAction(id: number): Promise<{ success: boolean; 
         return { success: false, error: error.message };
     }
 
+    revalidatePath('/admin/notes');
     revalidatePath('/admin');
     return { success: true };
 }
@@ -157,6 +160,7 @@ export async function deleteMultipleNotesAction(ids: number[]): Promise<{ succes
         return { success: false, error: error.message };
     }
 
+    revalidatePath('/admin/notes');
     revalidatePath('/admin');
     return { success: true };
 }

@@ -1,406 +1,109 @@
 'use client';
 
-import { useState, useEffect, useTransition, useMemo } from 'react';
-import type { Note } from '@/lib/types';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
-import { format } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { PlusCircle, Edit, Trash2, Loader2, Search, LogOut } from 'lucide-react';
-import Link from 'next/link';
-import { Input } from '@/components/ui/input';
-import { deleteNoteAction, updateNoteAction, getNotesAction, deleteMultipleNotesAction } from './actions';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { getNotesAction } from './actions';
+import { subjects, subjectChapters } from '@/lib/subjects';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BookCopy, LayoutList, BookOpen } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const ADMIN_PASSCODE = 'siam3310';
-const SESSION_STORAGE_KEY = 'admin_authenticated';
+interface Stats {
+  noteCount: number;
+  subjectCount: number;
+  chapterCount: number;
+}
 
-export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [passcode, setPasscode] = useState('');
+export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [allNotes, setAllNotes] = useState<Note[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedNotes, setSelectedNotes] = useState<number[]>([]);
-  const { toast } = useToast();
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  const filteredNotes = useMemo(() => {
-    const lowercasedFilter = searchTerm.toLowerCase();
-    if (!lowercasedFilter) return allNotes;
-    return allNotes.filter((note) =>
-      note.topic_title.toLowerCase().includes(lowercasedFilter) ||
-      note.subject.toLowerCase().includes(lowercasedFilter) ||
-      note.chapter_name.toLowerCase().includes(lowercasedFilter)
-    );
-  }, [searchTerm, allNotes]);
 
   useEffect(() => {
-    const sessionAuth = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (sessionAuth === 'true') {
-      setIsAuthenticated(true);
-      fetchNotes();
-    }
-    setLoading(false);
-  }, []);
+    async function fetchStats() {
+      setLoading(true);
+      const { notes } = await getNotesAction();
+      const subjectCount = subjects.length;
+      const chapterCount = Object.values(subjectChapters).flat().length;
 
-  const handleLogin = () => {
-    if (passcode === ADMIN_PASSCODE) {
-      sessionStorage.setItem(SESSION_STORAGE_KEY, 'true');
-      setIsAuthenticated(true);
-      fetchNotes();
-      toast({ title: 'Login successful!', description: 'Welcome to the admin dashboard.' });
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: 'Incorrect passcode. Please try again.',
+      setStats({
+        noteCount: notes.length,
+        subjectCount,
+        chapterCount,
       });
+      setLoading(false);
     }
-    setPasscode('');
-  };
-
-  const handleLogout = () => {
-    sessionStorage.removeItem(SESSION_STORAGE_KEY);
-    setIsAuthenticated(false);
-    setAllNotes([]);
-    setSelectedNotes([]);
-  };
-
-  const fetchNotes = async () => {
-    setLoading(true);
-    const result = await getNotesAction();
-    if(result.error) {
-        toast({
-            variant: 'destructive',
-            title: 'Failed to fetch notes',
-            description: result.error,
-        });
-        setAllNotes([]);
-    } else {
-        setAllNotes(result.notes);
-    }
-    setLoading(false);
-  };
-
-  const handleTogglePublish = (note: Note) => {
-    startTransition(async () => {
-      const formData = new FormData();
-      formData.append('subject', note.subject);
-      formData.append('chapter_name', note.chapter_name);
-      formData.append('topic_title', note.topic_title);
-      formData.append('is_published', String(!note.is_published));
-      
-      const result = await updateNoteAction(note.id, formData);
-
-      if (result.success) {
-        const updatedNotes = allNotes.map((n) => (n.id === note.id ? { ...n, is_published: !note.is_published } : n));
-        setAllNotes(updatedNotes);
-        toast({
-          title: 'Status Updated',
-          description: `${note.topic_title} is now ${!note.is_published ? 'published' : 'a draft'}.`,
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Update Failed',
-          description: result.error || 'Could not update the note status.',
-        });
-      }
-    });
-  };
-
-  const handleDelete = (noteId: number) => {
-    startTransition(async () => {
-      const result = await deleteNoteAction(noteId);
-      if (result.success) {
-        setAllNotes(allNotes.filter((note) => note.id !== noteId));
-        toast({
-          title: 'Note Deleted',
-          description: 'The note has been successfully deleted.',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Deletion Failed',
-          description: result.error || 'Could not delete the note.',
-        });
-      }
-    });
-  };
-
-  const handleSelectNote = (id: number) => {
-    setSelectedNotes(prev => 
-      prev.includes(id) ? prev.filter(noteId => noteId !== id) : [...prev, id]
-    );
-  };
-  
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedNotes(filteredNotes.map(note => note.id));
-    } else {
-      setSelectedNotes([]);
-    }
-  };
-
-  const handleDeleteMultiple = () => {
-    startTransition(async () => {
-        const result = await deleteMultipleNotesAction(selectedNotes);
-        if (result.success) {
-            setAllNotes(allNotes.filter(note => !selectedNotes.includes(note.id)));
-            setSelectedNotes([]);
-            toast({
-                title: 'Notes Deleted',
-                description: `${selectedNotes.length} notes have been successfully deleted.`,
-            });
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Deletion Failed',
-                description: result.error || 'Could not delete the selected notes.',
-            });
-        }
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Card className="w-full max-w-sm">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Admin Login</CardTitle>
-            <CardDescription>Please enter the passcode to access the dashboard.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              type="password"
-              placeholder="••••••••"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              className="text-center text-lg"
-            />
-            <Button onClick={handleLogin} className="w-full">
-              Enter Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const numSelected = selectedNotes.length;
-  const numFiltered = filteredNotes.length;
+    fetchStats();
+  }, []);
 
   return (
     <div className="w-full space-y-6">
-      <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <div>
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">
-                Manage all your study notes from here.
-            </p>
-        </div>
-        <div className="flex items-center gap-2">
-             <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-            </Button>
-             <Link href="/admin/new">
-                <Button size="sm">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add New Note
-                </Button>
-            </Link>
-        </div>
+      <header>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">
+          An overview of your website&apos;s content.
+        </p>
       </header>
-      
-      <Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Notes</CardTitle>
+            <BookCopy className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-1/4" />
+            ) : (
+              <div className="text-2xl font-bold">{stats?.noteCount}</div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Total number of notes created.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Subjects
+            </CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+             {loading ? (
+              <Skeleton className="h-8 w-1/4" />
+            ) : (
+              <div className="text-2xl font-bold">{stats?.subjectCount}</div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Number of subjects available.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Chapters</CardTitle>
+            <LayoutList className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+             {loading ? (
+              <Skeleton className="h-8 w-1/4" />
+            ) : (
+              <div className="text-2xl font-bold">{stats?.chapterCount}</div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Total chapters across all subjects.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+       <Card>
         <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Search notes..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-full"
-                    />
-                </div>
-                {numSelected > 0 && (
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm" className="w-full sm:w-auto" disabled={isPending}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete ({numSelected})
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the {numSelected} selected note(s).
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                onClick={handleDeleteMultiple}
-                                className="bg-destructive hover:bg-destructive/90"
-                                disabled={isPending}
-                            >
-                              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                Delete
-                            </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                )}
-            </div>
+          <CardTitle>Welcome, Admin!</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-secondary/50 hover:bg-secondary/50">
-                  <TableHead className="w-[40px] px-4">
-                    <Checkbox
-                        checked={numSelected === numFiltered && numFiltered > 0}
-                        indeterminate={numSelected > 0 && numSelected < numFiltered}
-                        onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                        aria-label="Select all"
-                        disabled={isPending}
-                    />
-                  </TableHead>
-                  <TableHead className="w-[40%]">Topic</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Created At</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredNotes.length > 0 ? (
-                  filteredNotes.map((note) => (
-                    <TableRow 
-                        key={note.id} 
-                        className="transition-colors"
-                        data-state={selectedNotes.includes(note.id) ? 'selected' : ''}
-                    >
-                      <TableCell className="px-4">
-                         <Checkbox
-                            checked={selectedNotes.includes(note.id)}
-                            onCheckedChange={() => handleSelectNote(note.id)}
-                            aria-label={`Select note ${note.topic_title}`}
-                            disabled={isPending}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex flex-col">
-                            <span className="font-semibold">{note.topic_title}</span>
-                            <span className="text-xs text-muted-foreground">{note.chapter_name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{note.subject}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                            <Switch
-                                id={`publish-switch-${note.id}`}
-                                checked={note.is_published}
-                                onCheckedChange={() => handleTogglePublish(note)}
-                                disabled={isPending}
-                                aria-label={`Toggle publish status for ${note.topic_title}`}
-                                className="transition-all"
-                            />
-                            <Badge variant={note.is_published ? 'default' : 'outline'} className="capitalize text-xs transition-colors">
-                              {note.is_published ? 'Published' : 'Draft'}
-                            </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        {format(new Date(note.created_at), 'dd MMM, yyyy')}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end items-center gap-1">
-                            <Link href={`/admin/edit/${note.id}`}>
-                                <Button variant="ghost" size="icon" aria-label="Edit" disabled={isPending}>
-                                    <Edit className="h-4 w-4" />
-                                </Button>
-                            </Link>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label="Delete" disabled={isPending}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the note titled &quot;{note.topic_title}&quot;.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        onClick={() => handleDelete(note.id)}
-                                        className="bg-destructive hover:bg-destructive/90"
-                                        disabled={isPending}
-                                    >
-                                      {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                                        Delete
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-48 text-center">
-                      <h3 className="font-semibold">No notes found</h3>
-                      <p className="text-muted-foreground mt-1">
-                        {searchTerm ? 'Try adjusting your search terms.' : 'Click "Add New Note" to get started.'}
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+            <p className="text-muted-foreground">
+                You can manage all your notes and subjects from the sidebar menu.
+                Use the &quot;Notes&quot; section to create, edit, or delete notes.
+                Use the &quot;Subjects&quot; section to view all available subjects and chapters.
+            </p>
         </CardContent>
       </Card>
     </div>
