@@ -8,7 +8,7 @@ export default async function SubjectsPage() {
 
   return (
     <div>
-      <h1 className="text-4xl font-bold mb-8 tracking-tight">Subjects</h1>
+      <h1 className="text-4xl font-bold mb-8 tracking-tight text-center">Subjects</h1>
       {subjects.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {subjects.map((subject) => (
