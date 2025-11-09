@@ -26,14 +26,13 @@ import {
 import type { NoteWithRelations, Subject, Chapter } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { createNoteAction, updateNoteAction } from '@/app/admin/notes/actions';
+import { createNoteAction, updateNoteAction, uploadFileAction } from '@/app/admin/notes/actions';
 import { Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from './ui/textarea';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUploadProgress } from './FileUploadProgress';
 
@@ -107,24 +106,21 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
 
     setter(prev => [...prev, newUpload]);
 
-    const filePath = `${uuidv4()}-${file.name}`;
+    // Use a FormData to send the file to the server action
+    const formData = new FormData();
+    formData.append('file', file);
     
+    // Simulate progress
+    setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 50 } : up));
+
     try {
-        const { data, error } = await supabase.storage
-            .from('notes-pdfs')
-            .upload(filePath, file, {
-                cacheControl: '3600',
-                upsert: false,
-                contentType: file.type,
-            });
+        const result = await uploadFileAction(formData);
 
-        if (error) {
-            throw error;
+        if (result.error || !result.url) {
+            throw new Error(result.error || 'Upload failed on server.');
         }
-
-        const { data: { publicUrl } } = supabase.storage.from('notes-pdfs').getPublicUrl(filePath);
-
-        setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 100, url: publicUrl } : up));
+        
+        setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 100, url: result.url! } : up));
 
     } catch (error: any) {
         console.error('Upload Error:', error);

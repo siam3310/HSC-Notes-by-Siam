@@ -105,14 +105,26 @@ VALUES ('notes-pdfs', 'notes-pdfs', TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Create policies for the 'notes-pdfs' bucket.
-CREATE POLICY "Allow service_role to upload files"
-ON storage.objects FOR INSERT TO service_role WITH CHECK (bucket_id = 'notes-pdfs');
+-- This policy allows the service_role to perform any action.
+CREATE POLICY "Allow service_role full access"
+ON storage.objects FOR ALL
+TO service_role
+USING (bucket_id = 'notes-pdfs');
 
-CREATE POLICY "Allow service_role to update files"
-ON storage.objects FOR UPDATE TO service_role USING (bucket_id = 'notes-pdfs');
+-- This policy allows any authenticated user to upload files.
+-- This is needed for the admin panel client-side uploads.
+CREATE POLICY "Allow authenticated users to upload"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'notes-pdfs');
 
-CREATE POLICY "Allow service_role to delete files"
-ON storage.objects FOR DELETE TO service_role USING (bucket_id = 'notes-pdfs');
+-- This policy allows any authenticated user to update their own files.
+-- (This might be useful later, but is good practice to have)
+CREATE POLICY "Allow authenticated users to update own files"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'notes-pdfs' AND auth.uid() = (metadata->>'owner')::uuid);
+
 
 CREATE POLICY "Public read access for files"
 ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'notes-pdfs');

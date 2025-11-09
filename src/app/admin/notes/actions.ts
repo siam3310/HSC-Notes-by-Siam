@@ -18,29 +18,35 @@ const noteSchema = z.object({
   new_image_urls: z.array(z.string()).optional(),
 });
 
-export async function getNotesAdmin(): Promise<{ notes: NoteWithRelations[]; error?: string }> {
-    const { data, error } = await supabaseAdmin
-        .from('notes')
-        .select(`
-            *,
-            subjects (name),
-            chapters (name)
-        `)
-        .order('created_at', { ascending: false });
+export async function uploadFileAction(formData: FormData): Promise<{ url: string | null, error: string | null }> {
+    const file = formData.get('file') as File;
 
-    if (error) {
-        console.error('Error fetching notes:', error);
-        return { notes: [], error: error.message };
+    if (!file) {
+        return { url: null, error: 'No file provided.' };
     }
 
-    const transformedData = data.map(note => ({
-        ...note,
-        subject_name: note.subjects?.name ?? 'N/A',
-        chapter_name: note.chapters?.name ?? null,
-    }));
+    try {
+        const filePath = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
+        const { data, error } = await supabaseAdmin.storage
+            .from('notes-pdfs')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false,
+                contentType: file.type,
+            });
 
+        if (error) {
+            throw error;
+        }
 
-    return { notes: transformedData as unknown as NoteWithRelations[] };
+        const { data: { publicUrl } } = supabaseAdmin.storage.from('notes-pdfs').getPublicUrl(filePath);
+
+        return { url: publicUrl, error: null };
+
+    } catch (error: any) {
+        console.error('Upload Error from Server Action:', error);
+        return { url: null, error: error.message };
+    }
 }
 
 
@@ -195,4 +201,29 @@ export async function deleteMultipleNotesAction(ids: number[]): Promise<{ succes
     revalidatePath('/admin');
     revalidatePath('/subjects', 'layout');
     return { success: true };
+}
+
+export async function getNotesAdmin(): Promise<{ notes: NoteWithRelations[]; error?: string }> {
+    const { data, error } = await supabaseAdmin
+        .from('notes')
+        .select(`
+            *,
+            subjects (name),
+            chapters (name)
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching notes:', error);
+        return { notes: [], error: error.message };
+    }
+
+    const transformedData = data.map(note => ({
+        ...note,
+        subject_name: note.subjects?.name ?? 'N/A',
+        chapter_name: note.chapters?.name ?? null,
+    }));
+
+
+    return { notes: transformedData as unknown as NoteWithRelations[] };
 }
