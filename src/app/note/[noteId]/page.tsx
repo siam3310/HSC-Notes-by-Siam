@@ -64,7 +64,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
   const hasPdfs = pdfs.length > 0;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div>
       <div className="mb-6">
         <Link href={`/subject/${encodeURIComponent(note.subject_name)}`}>
           <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
@@ -74,7 +74,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
         </Link>
       </div>
       
-      <article className="bg-card p-0 rounded-lg border">
+      <article className="p-0">
         <header className="border-b p-6 sm:p-8">
           <p className="text-sm text-muted-foreground tracking-wide uppercase">
             {note.subject_name} {note.chapter_name && `> ${note.chapter_name}`}
