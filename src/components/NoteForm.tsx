@@ -77,6 +77,8 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
       },
   });
 
+  const { register } = form;
+
   const selectedSubjectId = form.watch('subject_id');
   const [chaptersForSelectedSubject, setChaptersForSelectedSubject] = useState<Chapter[]>([]);
 
@@ -121,9 +123,8 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         }
     }
     // Append PDF file
-    const newPdfFile = (data.pdf?.[0] as File | null);
-    if (newPdfFile) {
-        formData.append('pdf', newPdfFile);
+    if (data.pdf && data.pdf.length > 0) {
+      formData.append('pdf', data.pdf[0]);
     }
 
     try {
@@ -243,25 +244,18 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         </FormItem>
                     )}
 
-                    <FormField
-                        control={form.control}
-                        name="pdf"
-                        render={({ field: { onChange, ...fieldProps } }) => (
-                            <FormItem>
-                                <FormLabel>{(isEditMode && note?.pdf_url && !pdfToDelete) ? "Replace PDF" : "Upload PDF (Optional)"}</FormLabel>
-                                <FormControl>
-                                    <Input 
-                                        type="file" 
-                                        accept={ACCEPTED_PDF_TYPE} 
-                                        onChange={(e) => onChange(e.target.files)}
-                                        {...fieldProps}
-                                    />
-                                </FormControl>
-                                <FormDescription>Upload a single PDF file for this note.</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <FormItem>
+                        <FormLabel>{(isEditMode && note?.pdf_url && !pdfToDelete) ? "Replace PDF" : "Upload PDF (Optional)"}</FormLabel>
+                        <FormControl>
+                            <Input 
+                                type="file" 
+                                accept={ACCEPTED_PDF_TYPE} 
+                                {...register("pdf")}
+                            />
+                        </FormControl>
+                        <FormDescription>Upload a single PDF file for this note.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
                     
                     <hr/>
 
@@ -284,26 +278,19 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         </FormItem>
                     )}
 
-                     <FormField
-                        control={form.control}
-                        name="images"
-                        render={({ field: { onChange, ...fieldProps } }) => (
-                            <FormItem>
-                                <FormLabel>{(isEditMode && note?.images && note.images.length > 0) ? "Add More Images" : "Upload Images (Optional)"}</FormLabel>
-                                <FormControl>
-                                    <Input 
-                                        type="file" 
-                                        accept={ACCEPTED_IMAGE_TYPES.join(',')} 
-                                        multiple 
-                                        onChange={(e) => onChange(e.target.files)}
-                                        {...fieldProps}
-                                    />
-                                </FormControl>
-                                <FormDescription>Upload one or more images for this note.</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                     <FormItem>
+                        <FormLabel>{(isEditMode && note?.images && note.images.length > 0) ? "Add More Images" : "Upload Images (Optional)"}</FormLabel>
+                        <FormControl>
+                            <Input 
+                                type="file" 
+                                accept={ACCEPTED_IMAGE_TYPES.join(',')} 
+                                multiple 
+                                {...register("images")}
+                            />
+                        </FormControl>
+                        <FormDescription>Upload one or more images for this note.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
 
                     <FormField
                         control={form.control} name="is_published"
@@ -331,3 +318,4 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   );
 }
 
+    
