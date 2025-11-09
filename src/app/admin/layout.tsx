@@ -127,11 +127,12 @@ export default function AdminLayout({
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader>
+        <SidebarHeader className="justify-between">
           <div className="flex items-center gap-2 p-2">
              <BookText className="h-6 w-6 text-primary"/>
              <span className="font-semibold text-lg">Admin Panel</span>
           </div>
+           <SidebarTrigger className="hidden md:flex" />
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
