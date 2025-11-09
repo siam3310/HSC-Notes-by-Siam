@@ -114,7 +114,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('fileType', file.type); // Explicitly send the file type
+    formData.append('fileType', file.type);
 
     const progressInterval = setInterval(() => {
         setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: Math.min(up.progress + 10, 90) } : up));
@@ -167,7 +167,9 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   };
 
   const onSubmit = async (data: NoteFormValues) => {
-    const isUploading = [...pdfUploads, ...imageUploads].some(up => up.progress > 0 && up.progress < 100);
+    const allUploads = [...pdfUploads, ...imageUploads];
+    const isUploading = allUploads.some(up => up.progress > 0 && up.progress < 100);
+
     if (isUploading) {
         toast({ variant: 'destructive', title: 'Please wait for all uploads to complete.' });
         return;
@@ -176,13 +178,16 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     const new_pdf_urls = pdfUploads.map(f => f.url).filter((url): url is string => !!url);
     const new_image_urls = imageUploads.map(f => f.url).filter((url): url is string => !!url);
 
-    const payload = {
+    const payload:any = {
         ...data,
         new_pdf_urls,
         new_image_urls,
-        pdfs_to_delete: pdfsToDelete,
-        images_to_delete: imagesToDelete,
     };
+    
+    if (isEditMode) {
+      payload.images_to_delete = imagesToDelete;
+      payload.pdfs_to_delete = pdfsToDelete;
+    }
 
     try {
         const result = isEditMode && note
@@ -342,3 +347,5 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
+
+    
