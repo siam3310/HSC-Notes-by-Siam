@@ -64,26 +64,26 @@ ALTER TABLE public.note_images ENABLE ROW LEVEL SECURITY;
 
 -- 6. Create policies for 'subjects' table.
 CREATE POLICY "Public read access for subjects"
-ON public.subjects FOR SELECT TO anon USING (true);
+ON public.subjects FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Full access for service role on subjects"
 ON public.subjects FOR ALL TO service_role USING (true);
 
 -- 7. Create policies for 'chapters' table.
 CREATE POLICY "Public read access for chapters"
-ON public.chapters FOR SELECT TO anon USING (true);
+ON public.chapters FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Full access for service role on chapters"
 ON public.chapters FOR ALL TO service_role USING (true);
 
 -- 8. Create policies for 'notes' table.
 CREATE POLICY "Public read-only access to published notes"
-ON public.notes FOR SELECT TO anon USING (is_published = TRUE);
+ON public.notes FOR SELECT TO anon, authenticated USING (is_published = TRUE);
 CREATE POLICY "Full access for service role on notes"
 ON public.notes FOR ALL TO service_role USING (true);
 
 -- 9. Create policies for 'note_images' table.
 -- Allow public read access to images of published notes.
 CREATE POLICY "Public read access for note images"
-ON public.note_images FOR SELECT TO anon USING (
+ON public.note_images FOR SELECT TO anon, authenticated USING (
   (SELECT is_published FROM public.notes WHERE id = note_id)
 );
 CREATE POLICY "Full access for service role on note_images"
@@ -112,7 +112,7 @@ CREATE POLICY "Allow service_role to delete files"
 ON storage.objects FOR DELETE TO service_role USING (bucket_id = 'notes-pdfs');
 
 CREATE POLICY "Public read access for files"
-ON storage.objects FOR SELECT TO anon USING (bucket_id = 'notes-pdfs');
+ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'notes-pdfs');
 ```
 
 ## 3. Get Project Credentials
@@ -182,7 +182,7 @@ ALTER COLUMN chapter_id DROP NOT NULL;
 -- Step 4: Create/Recreate security policies for the 'note_images' table for safety.
 DROP POLICY IF EXISTS "Public read access for note images" ON public.note_images;
 CREATE POLICY "Public read access for note images"
-ON public.note_images FOR SELECT TO anon USING (
+ON public.note_images FOR SELECT TO anon, authenticated USING (
   (SELECT is_published FROM public.notes WHERE id = note_id)
 );
 

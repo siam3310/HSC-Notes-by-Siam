@@ -1,4 +1,6 @@
 
+'use client';
+
 import { getNoteById } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -7,6 +9,9 @@ import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { PdfViewer } from '@/components/PdfViewer';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { NoteWithRelations } from '@/lib/types';
+import { useEffect, useState } from 'react';
 
 interface NotePageProps {
   params: {
@@ -14,18 +19,36 @@ interface NotePageProps {
   };
 }
 
-export default async function NotePage({ params }: NotePageProps) {
+export default function NotePage({ params }: NotePageProps) {
   const noteId = parseInt(params.noteId, 10);
-  if (isNaN(noteId)) {
-    notFound();
-  }
+  const [note, setNote] = useState<NoteWithRelations | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const note = await getNoteById(noteId);
+  useEffect(() => {
+    if (isNaN(noteId)) {
+      notFound();
+    }
 
-  if (!note) {
-    notFound();
+    const fetchNote = async () => {
+      const fetchedNote = await getNoteById(noteId);
+      if (!fetchedNote) {
+        notFound();
+      }
+      setNote(fetchedNote);
+      setLoading(false);
+    };
+
+    fetchNote();
+  }, [noteId]);
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Loading...</div>;
   }
   
+  if (!note) {
+    return notFound();
+  }
+
   const content = note.content || '';
   const images = note.images || [];
   const pdfUrl = note.pdf_url;
@@ -57,18 +80,29 @@ export default async function NotePage({ params }: NotePageProps) {
           {hasImages && (
             <div className="px-4 sm:px-8">
               <h2 className="text-2xl font-semibold mb-4">Images</h2>
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {images.map((image) => (
-                  <Card key={image.id}>
-                    <CardContent className="flex aspect-video items-center justify-center p-0 relative">
-                       <Image 
-                          src={image.image_url}
-                          alt={`Note image for ${note.topic_title}`}
-                          fill
-                          className="object-contain rounded-lg"
-                       />
-                    </CardContent>
-                  </Card>
+                    <Dialog key={image.id}>
+                        <DialogTrigger asChild>
+                            <div className="cursor-pointer overflow-hidden rounded-lg border hover:ring-2 ring-primary transition-all">
+                                <Image
+                                src={image.image_url}
+                                alt={`Note image for ${note.topic_title}`}
+                                width={600}
+                                height={400}
+                                className="object-cover w-full aspect-video"
+                                />
+                            </div>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-5xl h-[90vh] bg-transparent border-0 shadow-none">
+                             <Image 
+                                src={image.image_url}
+                                alt={`Note image for ${note.topic_title}`}
+                                layout="fill"
+                                className="object-contain"
+                            />
+                        </DialogContent>
+                  </Dialog>
                 ))}
               </div>
             </div>
@@ -100,5 +134,3 @@ export default async function NotePage({ params }: NotePageProps) {
     </div>
   );
 }
-
-export const revalidate = 60; // Revalidate every 60 seconds

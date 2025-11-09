@@ -42,7 +42,7 @@ const noteFormSchema = z.object({
   chapter_id: z.coerce.number().optional().nullable(),
   topic_title: z.string().min(3, { message: 'Topic title must be at least 3 characters.' }),
   content: z.string().optional(),
-  images: z.any().optional(), // We'll validate this manually if needed
+  images: z.any().optional(),
   pdf: z.any().optional(),
   images_to_delete: z.array(z.number()).optional(),
   pdf_to_delete: z.boolean().optional(),

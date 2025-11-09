@@ -5,18 +5,10 @@ import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import type { Note } from '@/lib/types';
 import { z } from 'zod';
-import { getNoteByIdAdmin, getNotesAdmin as getNotesAdminFromData } from '@/lib/data';
+import { getNoteByIdAdmin } from '@/lib/data';
 
 // Zod schema for validating file uploads
-const fileSchema = z.instanceof(File).refine(file => file.size > 0, "File cannot be empty.");
-const imageFileSchema = fileSchema.refine(
-    file => ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type),
-    "Only .jpg, .png, .gif, or .webp formats are accepted."
-);
-const pdfFileSchema = fileSchema.refine(
-    file => file.type === 'application/pdf',
-    "Only .pdf format is accepted."
-);
+const fileSchema = z.instanceof(File).optional();
 
 // Main schema for the note form
 const noteSchema = z.object({
@@ -28,7 +20,7 @@ const noteSchema = z.object({
 });
 
 
-async function handleFileUpload(file: File): Promise<{ url: string; type: 'image' | 'pdf' }> {
+async function handleFileUpload(file: File): Promise<string> {
     const fileName = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
     const { data, error } = await supabaseAdmin.storage
         .from('notes-pdfs')
@@ -42,10 +34,7 @@ async function handleFileUpload(file: File): Promise<{ url: string; type: 'image
         .from('notes-pdfs')
         .getPublicUrl(data.path);
 
-    return {
-        url: publicUrl,
-        type: file.type === 'application/pdf' ? 'pdf' : 'image',
-    };
+    return publicUrl;
 }
 
 
@@ -60,14 +49,13 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
         const noteDataToInsert: Omit<Note, 'id' | 'created_at'> = {
             ...validatedData,
             chapter_id: validatedData.chapter_id || null,
-            content: validatedData.content || null,
+            content: validatedData.content || '',
             pdf_url: null, // Start with null PDF URL
         };
 
         // Handle PDF Upload
         if (newPdf && newPdf.size > 0) {
-            const pdfUploadResult = await handleFileUpload(newPdf);
-            noteDataToInsert.pdf_url = pdfUploadResult.url;
+            noteDataToInsert.pdf_url = await handleFileUpload(newPdf);
         }
 
         const { data: note, error } = await supabaseAdmin
@@ -83,7 +71,7 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
         // Handle Image Uploads
         if (newImages.length > 0) {
             const uploadPromises = newImages.map(file => handleFileUpload(file));
-            const imageUrls = (await Promise.all(uploadPromises)).map(res => res.url);
+            const imageUrls = await Promise.all(uploadPromises);
             
             const imageInsertions = imageUrls.map(url => ({
                 note_id: note.id,
@@ -128,7 +116,7 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
         // 2. Upload new images
         if (newImages.length > 0) {
             const uploadPromises = newImages.map(file => handleFileUpload(file));
-            const imageUrls = (await Promise.all(uploadPromises)).map(res => res.url);
+            const imageUrls = await Promise.all(uploadPromises);
             
             const imageInsertions = imageUrls.map(url => ({ note_id: id, image_url: url }));
             const { error: imageError } = await supabaseAdmin.from('note_images').insert(imageInsertions);
@@ -143,15 +131,14 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
         }
         if (newPdf && newPdf.size > 0) {
             // If there's a new PDF, upload it and replace the old one.
-            const pdfUploadResult = await handleFileUpload(newPdf);
-            finalPdfUrl = pdfUploadResult.url;
+            finalPdfUrl = await handleFileUpload(newPdf);
         }
         
         // 4. Update note details
         const noteDataToUpdate = {
             ...validatedData,
             chapter_id: validatedData.chapter_id || null,
-            content: validatedData.content || null,
+            content: validatedData.content || '',
             pdf_url: finalPdfUrl,
         };
 
@@ -189,28 +176,5 @@ revalidatePath('/subjects', 'layout');
     return { success: true };
 }
 
-
-export async function getNotesAction() {
-    return await getNotesAdminFromData();
-}
-
-export async function deleteMultipleNotesAction(ids: number[]) {
-    if (!ids || ids.length === 0) {
-        return { success: false, error: 'No note IDs provided.' };
-    }
-    
-    const { error } = await supabaseAdmin
-        .from('notes')
-        .delete()
-        .in('id', ids);
-
-    if (error) {
-        console.error('Error deleting multiple notes:', error);
-        return { success: false, error: error.message };
-    }
-
-    revalidatePath('/admin/notes');
-    revalidatePath('/admin');
-    revalidatePath('/subjects', 'layout');
-    return { success: true };
-}
+export { getNotesAction } from './page-actions';
+export { deleteMultipleNotesAction } from './page-actions';
