@@ -18,7 +18,7 @@ export function Header() {
   }, [pathname]);
 
   return (
-    <header className="bg-card/95 sticky top-0 z-50 border-b">
+    <header className="bg-card sticky top-0 z-50 border-b-2">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-2">
           <Link
