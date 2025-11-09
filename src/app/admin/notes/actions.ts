@@ -16,12 +16,15 @@ const noteSchema = z.object({
 });
 
 async function handleFileUpload(file: File): Promise<string> {
-    const fileName = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+    // Generate a unique filename to avoid conflicts and issues with client-provided names
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${file.name.replace(/\s/g, '_')}`;
+    
     const { data, error } = await supabaseAdmin.storage
         .from('notes-pdfs')
         .upload(fileName, file);
 
     if (error) {
+        console.error('Supabase upload error:', error);
         throw new Error(`File upload failed: ${error.message}`);
     }
 
@@ -143,6 +146,12 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
             if (error) throw error;
         }
         if (newPdfFile && newPdfFile.size > 0) {
+            // Delete existing PDFs if a new one is uploaded
+            const existingPdfs = existingNote.pdfs?.filter(p => !pdfsToDelete.includes(p.id)) || [];
+            if (existingPdfs.length > 0) {
+                const existingPdfIds = existingPdfs.map(p => p.id);
+                await supabaseAdmin.from('note_pdfs').delete().in('id', existingPdfIds);
+            }
             const pdfUrl = await handleFileUpload(newPdfFile);
             const { error } = await supabaseAdmin.from('note_pdfs').insert([{ note_id: id, pdf_url: pdfUrl }]);
             if (error) throw error;
