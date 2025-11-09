@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import type { Note, NoteWithRelations } from '@/lib/types';
 import { z } from 'zod';
-import { getNoteByIdAdmin } from '@/lib/data';
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const ACCEPTED_PDF_TYPE = "application/pdf";
@@ -242,4 +241,28 @@ export async function getNotesAdmin(): Promise<{ notes: NoteWithRelations[]; err
 
 
     return { notes: transformedData as unknown as NoteWithRelations[] };
+}
+
+export async function getNoteByIdAdmin(noteId: number): Promise<NoteWithRelations | null> {
+  const { data, error } = await supabaseAdmin
+    .from('notes')
+    .select(`
+        *,
+        note_images(id, image_url),
+        note_pdfs(id, pdf_url)
+    `)
+    .eq('id', noteId)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching note with id ${noteId} for admin:`, error);
+    return null;
+  }
+  const transformedData = {
+    ...data,
+    images: data.note_images || [],
+    pdfs: data.note_pdfs || [],
+  };
+
+  return transformedData as unknown as NoteWithRelations;
 }

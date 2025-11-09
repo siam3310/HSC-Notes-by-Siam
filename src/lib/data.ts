@@ -91,33 +91,8 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
 
 
 // =================================================================
-// ADMIN-ONLY FUNCTIONS (using service_role key)
+// GENERIC ADMIN-ONLY FUNCTIONS (using service_role key)
 // =================================================================
-
-export async function getNoteByIdAdmin(noteId: number): Promise<NoteWithRelations | null> {
-  const { data, error } = await supabaseAdmin
-    .from('notes')
-    .select(`
-        *,
-        note_images(id, image_url),
-        note_pdfs(id, pdf_url)
-    `)
-    .eq('id', noteId)
-    .single();
-
-  if (error) {
-    console.error(`Error fetching note with id ${noteId} for admin:`, error);
-    return null;
-  }
-  const transformedData = {
-    ...data,
-    images: data.note_images || [],
-    pdfs: data.note_pdfs || [],
-  };
-
-  return transformedData as unknown as NoteWithRelations;
-}
-
 
 export async function getSubjectsAndChapters(): Promise<{ subjects: Subject[], chapters: Chapter[] }> {
     const [subjectsRes, chaptersRes] = await Promise.all([
