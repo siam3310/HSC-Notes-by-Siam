@@ -210,14 +210,18 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         render={({ field }) => (
                             <FormItem>
                             <FormLabel>Chapter Name (Optional)</FormLabel>
-                                <Select onValueChange={(value) => field.onChange(value ? Number(value) : null)} value={String(field.value ?? '')} disabled={!selectedSubjectId}>
+                                <Select 
+                                    onValueChange={(value) => field.onChange(value === '0' ? null : Number(value))} 
+                                    value={String(field.value ?? '0')} 
+                                    disabled={!selectedSubjectId}
+                                >
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder={!selectedSubjectId ? "First select a subject" : "Select a chapter"} />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="">No Chapter</SelectItem>
+                                        <SelectItem value="0">No Chapter</SelectItem>
                                         {chaptersForSelectedSubject.map(chapter => (
                                             <SelectItem key={chapter.id} value={String(chapter.id)}>{chapter.name}</SelectItem>
                                         ))}
@@ -363,3 +367,5 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
+
+    
