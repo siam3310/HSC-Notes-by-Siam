@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -22,7 +23,7 @@ export function Header() {
         <div className="flex justify-between items-center py-4">
           <Link
             href="/"
-            className="flex items-center gap-3 text-xl font-bold text-foreground transition-transform duration-300 ease-in-out hover:scale-105"
+            className="flex items-center gap-2 text-lg font-bold text-foreground bg-secondary px-4 py-2 rounded-lg"
           >
             <BookText className="h-6 w-6 text-primary"/>
             <h1>HSC Hand Notes</h1>
