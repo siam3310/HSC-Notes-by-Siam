@@ -2,7 +2,7 @@
 'use client';
 
 import { getNoteById } from '@/lib/data';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -19,12 +19,15 @@ interface NotePageProps {
   };
 }
 
-export default function NotePage({ params }: NotePageProps) {
+export default function NotePage({ params: initialParams }: NotePageProps) {
+  const params = useParams();
   const [note, setNote] = useState<NoteWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const noteId = parseInt(params.noteId, 10);
+    const noteIdStr = Array.isArray(params.noteId) ? params.noteId[0] : params.noteId;
+    const noteId = parseInt(noteIdStr, 10);
+    
     if (isNaN(noteId)) {
       notFound();
     }
