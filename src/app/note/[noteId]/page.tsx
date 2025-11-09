@@ -5,7 +5,7 @@ import { getNoteById } from '@/lib/data';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Download, X } from 'lucide-react';
+import { Download, X } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { PdfViewer } from '@/components/PdfViewer';
@@ -65,21 +65,15 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
 
   return (
     <div>
-      <div className="mb-6">
-        <Link 
-            href={`/subject/${encodeURIComponent(note.subject_name)}`} 
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to {note.subject_name}
-        </Link>
-      </div>
-      
       <article className="p-0">
         <header className="border-b p-6 sm:p-8">
-          <p className="text-sm text-muted-foreground tracking-wide uppercase">
-            {note.subject_name} {note.chapter_name && `> ${note.chapter_name}`}
-          </p>
+          <div className="text-sm text-muted-foreground tracking-wide uppercase">
+            <Link href={`/subject/${encodeURIComponent(note.subject_name)}`} className="hover:text-foreground transition-colors">
+                {note.subject_name}
+            </Link>
+            {note.chapter_name && <span className="mx-2">&gt;</span>}
+            {note.chapter_name && <span>{note.chapter_name}</span>}
+          </div>
           <h1 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">{note.topic_title}</h1>
         </header>
 
