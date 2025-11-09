@@ -3,7 +3,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import type { Note } from '@/lib/types';
+import type { Note, NoteWithRelations } from '@/lib/types';
 import { z } from 'zod';
 import { getNoteByIdAdmin } from '@/lib/data';
 

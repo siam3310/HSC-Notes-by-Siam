@@ -30,7 +30,8 @@ import {
 import { PlusCircle, Edit, Trash2, Loader2, Search, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { getNotesAction, deleteMultipleNotesAction, deleteNoteAction } from './actions';
+import { deleteMultipleNotesAction, deleteNoteAction } from './actions';
+import { getNotesAdmin } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
@@ -48,7 +49,7 @@ export default function AdminNotesPage() {
 
   const fetchNotes = async () => {
     setLoading(true);
-    const result = await getNotesAction();
+    const result = await getNotesAdmin();
     if(result.error) {
         toast({
             variant: 'destructive',

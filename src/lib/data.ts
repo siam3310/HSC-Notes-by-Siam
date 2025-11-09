@@ -92,6 +92,32 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
 // ADMIN-ONLY FUNCTIONS (using service_role key)
 // =================================================================
 
+export async function getNotesAdmin(): Promise<{ notes: NoteWithRelations[]; error?: string }> {
+    const { data, error } = await supabaseAdmin
+        .from('notes')
+        .select(`
+            *,
+            subjects (name),
+            chapters (name)
+        `)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching notes:', error);
+        return { notes: [], error: error.message };
+    }
+
+    const transformedData = data.map(note => ({
+        ...note,
+        subject_name: note.subjects?.name ?? 'N/A',
+        chapter_name: note.chapters?.name ?? null,
+    }));
+
+
+    return { notes: transformedData as unknown as NoteWithRelations[] };
+}
+
+
 export async function getNoteByIdAdmin(noteId: number): Promise<NoteWithRelations | null> {
   const { data, error } = await supabaseAdmin
     .from('notes')
@@ -130,29 +156,4 @@ export async function getSubjectsAndChapters(): Promise<{ subjects: Subject[], c
         subjects: subjectsRes.data,
         chapters: chaptersRes.data
     };
-}
-
-export async function getNotesAdmin(): Promise<{ notes: NoteWithRelations[]; error?: string }> {
-    const { data, error } = await supabaseAdmin
-        .from('notes')
-        .select(`
-            *,
-            subjects (name),
-            chapters (name)
-        `)
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error('Error fetching notes:', error);
-        return { notes: [], error: error.message };
-    }
-
-    const transformedData = data.map(note => ({
-        ...note,
-        subject_name: note.subjects?.name ?? 'N/A',
-        chapter_name: note.chapters?.name ?? null,
-    }));
-
-
-    return { notes: transformedData as unknown as NoteWithRelations[] };
 }
