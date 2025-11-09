@@ -140,3 +140,23 @@ export async function deleteNoteAction(id: number): Promise<{ success: boolean; 
     revalidatePath('/admin');
     return { success: true };
 }
+
+
+export async function deleteMultipleNotesAction(ids: number[]): Promise<{ success: boolean; error?: string }> {
+    if (!ids || ids.length === 0) {
+        return { success: false, error: 'No note IDs provided.' };
+    }
+
+    const { error } = await supabaseAdmin
+        .from('notes')
+        .delete()
+        .in('id', ids);
+
+    if (error) {
+        console.error('Error deleting multiple notes:', error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin');
+    return { success: true };
+}

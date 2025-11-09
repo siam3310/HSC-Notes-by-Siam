@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import type { Note } from '@/lib/types';
 import {
   Table,
@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -29,7 +30,7 @@ import {
 import { PlusCircle, Edit, Trash2, Loader2, Search, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { deleteNoteAction, updateNoteAction, getNotesAction } from './actions';
+import { deleteNoteAction, updateNoteAction, getNotesAction, deleteMultipleNotesAction } from './actions';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -41,14 +42,23 @@ export default function AdminPage() {
   const [passcode, setPasscode] = useState('');
   const [loading, setLoading] = useState(true);
   const [allNotes, setAllNotes] = useState<Note[]>([]);
-  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedNotes, setSelectedNotes] = useState<number[]>([]);
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  const filteredNotes = useMemo(() => {
+    const lowercasedFilter = searchTerm.toLowerCase();
+    if (!lowercasedFilter) return allNotes;
+    return allNotes.filter((note) =>
+      note.topic_title.toLowerCase().includes(lowercasedFilter) ||
+      note.subject.toLowerCase().includes(lowercasedFilter) ||
+      note.chapter_name.toLowerCase().includes(lowercasedFilter)
+    );
+  }, [searchTerm, allNotes]);
+
   useEffect(() => {
-    // This effect runs only on the client, after the initial render.
     const sessionAuth = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (sessionAuth === 'true') {
       setIsAuthenticated(true);
@@ -56,16 +66,6 @@ export default function AdminPage() {
     }
     setLoading(false);
   }, []);
-
-  useEffect(() => {
-    const lowercasedFilter = searchTerm.toLowerCase();
-    const filteredData = allNotes.filter((note) =>
-      note.topic_title.toLowerCase().includes(lowercasedFilter) ||
-      note.subject.toLowerCase().includes(lowercasedFilter) ||
-      note.chapter_name.toLowerCase().includes(lowercasedFilter)
-    );
-    setFilteredNotes(filteredData);
-  }, [searchTerm, allNotes]);
 
   const handleLogin = () => {
     if (passcode === ADMIN_PASSCODE) {
@@ -87,7 +87,7 @@ export default function AdminPage() {
     sessionStorage.removeItem(SESSION_STORAGE_KEY);
     setIsAuthenticated(false);
     setAllNotes([]);
-    setFilteredNotes([]);
+    setSelectedNotes([]);
   };
 
   const fetchNotes = async () => {
@@ -102,7 +102,6 @@ export default function AdminPage() {
         setAllNotes([]);
     } else {
         setAllNotes(result.notes);
-        setFilteredNotes(result.notes);
     }
     setLoading(false);
   };
@@ -152,7 +151,41 @@ export default function AdminPage() {
       }
     });
   };
+
+  const handleSelectNote = (id: number) => {
+    setSelectedNotes(prev => 
+      prev.includes(id) ? prev.filter(noteId => noteId !== id) : [...prev, id]
+    );
+  };
   
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedNotes(filteredNotes.map(note => note.id));
+    } else {
+      setSelectedNotes([]);
+    }
+  };
+
+  const handleDeleteMultiple = () => {
+    startTransition(async () => {
+        const result = await deleteMultipleNotesAction(selectedNotes);
+        if (result.success) {
+            setAllNotes(allNotes.filter(note => !selectedNotes.includes(note.id)));
+            setSelectedNotes([]);
+            toast({
+                title: 'Notes Deleted',
+                description: `${selectedNotes.length} notes have been successfully deleted.`,
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Deletion Failed',
+                description: result.error || 'Could not delete the selected notes.',
+            });
+        }
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -187,6 +220,9 @@ export default function AdminPage() {
     );
   }
 
+  const numSelected = selectedNotes.length;
+  const numFiltered = filteredNotes.length;
+
   return (
     <div className="w-full space-y-6">
       <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -212,21 +248,61 @@ export default function AdminPage() {
       
       <Card>
         <CardHeader>
-             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                    placeholder="Search notes..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full"
-                />
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search notes..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 w-full"
+                    />
+                </div>
+                {numSelected > 0 && (
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm" className="w-full sm:w-auto" disabled={isPending}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete ({numSelected})
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the {numSelected} selected note(s).
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleDeleteMultiple}
+                                className="bg-destructive hover:bg-destructive/90"
+                                disabled={isPending}
+                            >
+                              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                Delete
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
             </div>
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="bg-secondary hover:bg-secondary">
+                <TableRow className="bg-secondary/50 hover:bg-secondary/50">
+                  <TableHead className="w-[40px] px-4">
+                    <Checkbox
+                        checked={numSelected === numFiltered && numFiltered > 0}
+                        indeterminate={numSelected > 0 && numSelected < numFiltered}
+                        onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                        aria-label="Select all"
+                        disabled={isPending}
+                    />
+                  </TableHead>
                   <TableHead className="w-[40%]">Topic</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Status</TableHead>
@@ -237,7 +313,19 @@ export default function AdminPage() {
               <TableBody>
                 {filteredNotes.length > 0 ? (
                   filteredNotes.map((note) => (
-                    <TableRow key={note.id} className="[&_td]:py-3">
+                    <TableRow 
+                        key={note.id} 
+                        className="transition-colors"
+                        data-state={selectedNotes.includes(note.id) ? 'selected' : ''}
+                    >
+                      <TableCell className="px-4">
+                         <Checkbox
+                            checked={selectedNotes.includes(note.id)}
+                            onCheckedChange={() => handleSelectNote(note.id)}
+                            aria-label={`Select note ${note.topic_title}`}
+                            disabled={isPending}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex flex-col">
                             <span className="font-semibold">{note.topic_title}</span>
@@ -253,8 +341,9 @@ export default function AdminPage() {
                                 onCheckedChange={() => handleTogglePublish(note)}
                                 disabled={isPending}
                                 aria-label={`Toggle publish status for ${note.topic_title}`}
+                                className="transition-all"
                             />
-                            <Badge variant={note.is_published ? 'default' : 'secondary'} className="capitalize text-xs">
+                            <Badge variant={note.is_published ? 'default' : 'outline'} className="capitalize text-xs transition-colors">
                               {note.is_published ? 'Published' : 'Draft'}
                             </Badge>
                         </div>
@@ -301,7 +390,7 @@ export default function AdminPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-48 text-center">
+                    <TableCell colSpan={6} className="h-48 text-center">
                       <h3 className="font-semibold">No notes found</h3>
                       <p className="text-muted-foreground mt-1">
                         {searchTerm ? 'Try adjusting your search terms.' : 'Click "Add New Note" to get started.'}
