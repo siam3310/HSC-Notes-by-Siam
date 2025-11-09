@@ -10,7 +10,7 @@ const noteSchema = z.object({
   subject: z.string().min(2),
   chapter_name: z.string().min(3),
   topic_title: z.string().min(3),
-  content_html: z.string().optional(),
+  content: z.string().optional(),
   pdf_url: z.string().url().optional().or(z.literal('')),
   is_published: z.enum(['true', 'false']).transform(val => val === 'true'),
 });
@@ -64,12 +64,12 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
         const noteDataToInsert: Omit<Note, 'id' | 'created_at'> = {
             ...validatedData,
             pdf_url: pdfUrl,
-            content_html: validatedData.content_html || null,
+            content: validatedData.content || null,
         };
 
         const { error } = await supabaseAdmin
             .from('notes')
-            .insert([noteDataToInsert]);
+            .insert([{...noteDataToInsert, content_html: noteDataToInsert.content}]);
         
         if (error) {
             throw error;
@@ -104,7 +104,7 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
             topic_title: validatedData.topic_title,
             is_published: validatedData.is_published,
             pdf_url: pdfUrl || null,
-            content_html: validatedData.content_html || null,
+            content_html: validatedData.content || null,
         };
 
         const { error } = await supabaseAdmin

@@ -3,7 +3,7 @@ export interface Note {
   subject: string;
   chapter_name: string;
   topic_title: string;
-  content_html?: string | null;
+  content?: string | null;
   pdf_url?: string | null;
   is_published: boolean;
   created_at: string;

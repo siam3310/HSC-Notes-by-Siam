@@ -45,7 +45,7 @@ const noteFormSchema = z.object({
   topic_title: z.string().min(3, {
     message: 'Topic title must be at least 3 characters.',
   }),
-  content_html: z.string().optional(),
+  content: z.string().optional(),
   pdf_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
   pdf_file: z
     .any()
@@ -73,7 +73,7 @@ export function NoteForm({ note }: NoteFormProps) {
         subject: note.subject,
         chapter_name: note.chapter_name,
         topic_title: note.topic_title,
-        content_html: note.content_html || '',
+        content: note.content || '',
         pdf_url: note.pdf_url || '',
         is_published: note.is_published,
         pdf_file: undefined,
@@ -82,7 +82,7 @@ export function NoteForm({ note }: NoteFormProps) {
         subject: '',
         chapter_name: '',
         topic_title: '',
-        content_html: '',
+        content: '',
         pdf_url: '',
         is_published: false,
         pdf_file: undefined,
@@ -214,19 +214,19 @@ export function NoteForm({ note }: NoteFormProps) {
             />
             <FormField
             control={form.control}
-            name="content_html"
+            name="content"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Content (HTML)</FormLabel>
+                <FormLabel>Content</FormLabel>
                 <FormControl>
                     <Textarea
-                        placeholder="<h1>Title</h1><p>Your note content here...</p>"
-                        className="min-h-[200px] font-mono"
+                        placeholder="Your note content here..."
+                        className="min-h-[200px]"
                         {...field}
                     />
                 </FormControl>
                  <FormDescription>
-                    You can add simple HTML content if there is no PDF.
+                    Add simple text content if there is no PDF.
                 </FormDescription>
                 <FormMessage />
                 </FormItem>

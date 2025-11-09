@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import DOMPurify from 'isomorphic-dompurify';
 import { Separator } from '@/components/ui/separator';
 import { PdfViewer } from '@/components/PdfViewer';
 
@@ -26,7 +25,7 @@ export default async function NotePage({ params }: NotePageProps) {
     notFound();
   }
   
-  const sanitizedContent = note.content_html ? DOMPurify.sanitize(note.content_html) : '';
+  const content = note.content || '';
 
   const isGoogleDriveUrl = note.pdf_url && note.pdf_url.includes('drive.google.com');
   const googleDriveEmbedUrl = isGoogleDriveUrl ? note.pdf_url?.replace('/view', '/preview') : '';
@@ -59,18 +58,15 @@ export default async function NotePage({ params }: NotePageProps) {
             </div>
           ) : null}
 
-        {sanitizedContent && note.pdf_url && <Separator className="my-0" />}
+        {content && note.pdf_url && <Separator className="my-0" />}
 
-        {sanitizedContent && (
+        {content && (
            <div className="p-6 sm:p-8">
-             <div
-              className="prose prose-lg dark:prose-invert max-w-none prose-h1:font-bold prose-h1:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 prose-strong:text-foreground"
-              dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-            />
+             <p className="whitespace-pre-wrap text-foreground/90">{content}</p>
            </div>
         )}
 
-        {!note.pdf_url && !sanitizedContent && (
+        {!note.pdf_url && !content && (
             <p className="text-muted-foreground text-center py-20">No content available for this note.</p>
         )}
       </article>
