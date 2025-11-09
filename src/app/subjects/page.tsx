@@ -1,3 +1,4 @@
+
 import { getSubjects } from '@/lib/data';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +14,7 @@ export default async function SubjectsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {subjects.map((subject) => (
             <Link href={`/subject/${encodeURIComponent(subject)}`} key={subject}>
-              <Card className="hover:border-primary/80 transition-all duration-300 ease-in-out group bg-card">
+              <Card className="border-2 hover:border-primary/80 transition-all duration-300 ease-in-out group bg-card">
                 <CardHeader>
                   <CardTitle className="flex justify-between items-center text-xl font-semibold">
                     <span>{subject}</span>
@@ -35,3 +36,4 @@ export default async function SubjectsPage() {
 }
 
 export const revalidate = 60; // Revalidate every 60 seconds
+
