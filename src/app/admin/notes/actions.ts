@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import type { Note } from '@/lib/types';
 import { z } from 'zod';
-import { getNoteByIdAdmin } from '@/lib/data';
+import { getNoteByIdAdmin, getNotesAdmin as getNotesAdminFromData } from '@/lib/data';
 
 // Zod schema for validating file uploads
 const fileSchema = z.instanceof(File).refine(file => file.size > 0, "File cannot be empty.");
@@ -187,7 +187,39 @@ export async function deleteNoteAction(id: number): Promise<{ success: boolean; 
     return { success: true };
 }
 
-// NOTE: getNotesAction and deleteMultipleNotesAction are in the notes/page.tsx file now
-// as they are primarily used there. This can be refactored later if needed elsewhere.
-export async function getNotesAction() { return { notes: [], error: 'This function is deprecated here.'}}
-export async function deleteMultipleNotesAction() {return {success: false, error: 'This function is deprecated here.'}}
+
+export async function getNotesAction() {
+    return await getNotesAdminFromData();
+}
+
+export async function deleteMultipleNotesAction(ids: number[]) {
+    if (!ids || ids.length === 0) {
+        return { success: false, error: 'No note IDs provided.' };
+    }
+    
+    // RLS with "ON DELETE CASCADE" should handle note_images, but explicit deletion is safer.
+    const { error: imageDeleteError } = await supabaseAdmin
+        .from('note_images')
+        .delete()
+        .in('note_id', ids);
+
+    if (imageDeleteError) {
+        console.error('Error deleting associated images for multiple notes:', imageDeleteError);
+        return { success: false, error: imageDeleteError.message };
+    }
+
+    const { error } = await supabaseAdmin
+        .from('notes')
+        .delete()
+        .in('id', ids);
+
+    if (error) {
+        console.error('Error deleting multiple notes:', error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin/notes');
+    revalidatePath('/admin');
+    revalidatePath('/subjects', 'layout');
+    return { success: true };
+}

@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { supabaseAdmin } from './supabaseAdmin';
 import type { Note, NoteWithRelations, Subject, Chapter, NoteImage } from './types';
+import { revalidatePath } from 'next/cache';
 
 // =================================================================
 // PUBLIC-FACING FUNCTIONS (using anon key)

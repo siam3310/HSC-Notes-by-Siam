@@ -29,8 +29,7 @@ import {
 import { PlusCircle, Edit, Trash2, Loader2, Search, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { getNotesAdmin, deleteMultipleNotesAdmin } from '@/lib/data';
-import { deleteNoteAction } from './actions';
+import { getNotesAction, deleteMultipleNotesAction, deleteNoteAction } from './actions';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
@@ -48,7 +47,7 @@ export default function AdminNotesPage() {
 
   const fetchNotes = async () => {
     setLoading(true);
-    const result = await getNotesAdmin();
+    const result = await getNotesAction();
     if(result.error) {
         toast({
             variant: 'destructive',
@@ -103,7 +102,7 @@ export default function AdminNotesPage() {
 
   const handleDeleteMultiple = () => {
     startTransition(async () => {
-        const result = await deleteMultipleNotesAdmin(selectedNotes);
+        const result = await deleteMultipleNotesAction(selectedNotes);
         if (result.success) {
             setAllNotes(prev => prev.filter(note => !selectedNotes.includes(note.id)));
             setSelectedNotes([]);
