@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -22,6 +23,9 @@ import { createNoteAction, updateNoteAction } from '@/app/admin/actions';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_FILE_TYPES = ["application/pdf"];
+
 const noteFormSchema = z.object({
   subject: z.string().min(2, {
     message: 'Subject must be at least 2 characters.',
@@ -34,6 +38,13 @@ const noteFormSchema = z.object({
   }),
   content_html: z.string().optional(),
   pdf_url: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
+  pdf_file: z
+    .any()
+    .refine((files) => !files || files?.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+    .refine(
+      (files) => !files || files?.length === 0 || ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
+      "Only .pdf files are accepted."
+    ),
   is_published: z.boolean().default(false),
 });
 
@@ -56,6 +67,7 @@ export function NoteForm({ note }: NoteFormProps) {
         content_html: note.content_html || '',
         pdf_url: note.pdf_url || '',
         is_published: note.is_published,
+        pdf_file: undefined,
       }
     : {
         subject: '',
@@ -64,6 +76,7 @@ export function NoteForm({ note }: NoteFormProps) {
         content_html: '',
         pdf_url: '',
         is_published: false,
+        pdf_file: undefined,
       };
 
   const form = useForm<NoteFormValues>({
@@ -72,12 +85,25 @@ export function NoteForm({ note }: NoteFormProps) {
   });
 
   const onSubmit = async (data: NoteFormValues) => {
+    const formData = new FormData();
+    
+    // Append all form data to FormData object
+    Object.entries(data).forEach(([key, value]) => {
+        if (key === 'pdf_file') {
+            if (value && value.length > 0) {
+                formData.append(key, value[0]);
+            }
+        } else if (value !== null && value !== undefined) {
+            formData.append(key, String(value));
+        }
+    });
+
     try {
         let result;
         if (isEditMode && note) {
-            result = await updateNoteAction(note.id, data);
+            result = await updateNoteAction(note.id, formData);
         } else {
-            result = await createNoteAction(data as any);
+            result = await createNoteAction(formData);
         }
 
         if (result.success) {
@@ -177,6 +203,37 @@ export function NoteForm({ note }: NoteFormProps) {
                     </FormItem>
                 )}
                 />
+
+                <FormField
+                    control={form.control}
+                    name="pdf_file"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Upload PDF</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    type="file" 
+                                    accept=".pdf"
+                                    onChange={(e) => field.onChange(e.target.files)}
+                                />
+                            </FormControl>
+                            <FormDescription>
+                                Upload a PDF file directly (max 5MB). This will override the PDF URL field.
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">Or</span>
+                    </div>
+                </div>
+
                 <FormField
                 control={form.control}
                 name="pdf_url"
@@ -186,10 +243,14 @@ export function NoteForm({ note }: NoteFormProps) {
                     <FormControl>
                         <Input placeholder="https://example.com/note.pdf" {...field} />
                     </FormControl>
+                     <FormDescription>
+                        Use this if you are linking to an external PDF instead of uploading.
+                    </FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
+
                 <FormField
                 control={form.control}
                 name="is_published"

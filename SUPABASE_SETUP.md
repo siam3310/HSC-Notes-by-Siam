@@ -40,10 +40,47 @@ ON public.notes
 FOR ALL
 TO service_role
 USING (true);
-
 ```
 
-## 2. Get Project Credentials
+## 2. Setup Storage for PDF Uploads
+
+Run the following SQL in your Supabase SQL Editor to set up the storage bucket and policies for direct PDF uploads.
+
+```sql
+-- 1. Create a storage bucket named 'notes-pdfs' to hold the uploaded PDF files.
+-- Make it public so that anyone with the URL can view the file.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('notes-pdfs', 'notes-pdfs', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Create a policy that allows the 'service_role' (your admin server) to upload files to the 'notes-pdfs' bucket.
+CREATE POLICY "Allow service_role to upload PDFs"
+ON storage.objects
+FOR INSERT TO service_role
+WITH CHECK (bucket_id = 'notes-pdfs');
+
+-- 3. Create a policy that allows the 'service_role' to update existing files.
+CREATE POLICY "Allow service_role to update PDFs"
+ON storage.objects
+FOR UPDATE TO service_role
+USING (bucket_id = 'notes-pdfs');
+
+-- 4. Create a policy that allows the 'service_role' to delete files.
+CREATE POLICY "Allow service_role to delete PDFs"
+ON storage.objects
+FOR DELETE TO service_role
+USING (bucket_id = 'notes-pdfs');
+
+-- 5. (IMPORTANT) Allow public, anonymous access to view/read files in the bucket.
+-- This is required so the PDF viewer in the browser can fetch and display the file.
+CREATE POLICY "Public read access for PDFs"
+ON storage.objects
+FOR SELECT
+TO anon
+USING (bucket_id = 'notes-pdfs');
+```
+
+## 3. Get Project Credentials
 
 You'll need your Supabase Project URL, the `anon` (public) key, and the `service_role` key.
 
@@ -60,7 +97,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 ```
 
-## 3. (Optional) Add Example Data
+## 4. (Optional) Add Example Data
 
 To add some example notes to your database, run the following SQL in the **SQL Editor**:
 
