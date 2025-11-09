@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu } from 'lucide-react';
+import { Menu, BookText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
@@ -17,14 +17,15 @@ export function Header() {
   }, [pathname]);
 
   return (
-    <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b">
+    <header className="bg-card/95 sticky top-0 z-50 border-b">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           <Link
             href="/"
-            className="flex items-center gap-2 text-xl font-bold text-foreground"
+            className="flex items-center gap-3 text-xl font-bold text-foreground transition-transform duration-300 ease-in-out hover:scale-105"
           >
-            <h1 className="font-headline">HSC Hand Notes by Siam</h1>
+            <BookText className="h-6 w-6 text-primary"/>
+            <h1>HSC Hand Notes</h1>
           </Link>
 
           {/* Desktop Navigation */}
@@ -45,8 +46,8 @@ export function Header() {
 
           {/* Mobile Menu Trigger */}
           <div className="md:hidden">
-            <Button variant="outline" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              <Menu className="h-5 w-5" />
+            <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              <Menu className="h-6 w-6" />
               <span className="sr-only">Open menu</span>
             </Button>
           </div>
@@ -63,13 +64,13 @@ export function Header() {
         <nav className="flex flex-col gap-1 p-4">
           <Link
             href="/"
-            className="text-muted-foreground hover:text-foreground transition-colors text-lg p-2 rounded-md hover:bg-secondary"
+            className="text-muted-foreground hover:text-foreground transition-colors text-lg p-3 rounded-md hover:bg-secondary"
           >
             Home
           </Link>
           <Link
             href="/subjects"
-            className="text-muted-foreground hover:text-foreground transition-colors text-lg p-2 rounded-md hover:bg-secondary"
+            className="text-muted-foreground hover:text-foreground transition-colors text-lg p-3 rounded-md hover:bg-secondary"
           >
             Subjects
           </Link>

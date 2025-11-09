@@ -34,44 +34,44 @@ export default async function NotePage({ params }: NotePageProps) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
+      <div className="mb-6">
         <Link href={`/subject/${encodeURIComponent(note.subject)}`}>
-          <Button variant="ghost">
+          <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to {note.subject}
           </Button>
         </Link>
       </div>
       
-      <article className="bg-card p-0 sm:p-0 rounded-lg border">
-        <header className="border-b pb-4 mb-6 p-6 sm:p-8">
-          <p className="text-sm text-muted-foreground">{note.subject} &gt; {note.chapter_name}</p>
-          <h1 className="text-3xl md:text-4xl font-bold mt-2 font-headline">{note.topic_title}</h1>
+      <article className="bg-card p-0 rounded-lg border">
+        <header className="border-b p-6 sm:p-8">
+          <p className="text-sm text-muted-foreground tracking-wide uppercase">{note.subject} &gt; {note.chapter_name}</p>
+          <h1 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">{note.topic_title}</h1>
         </header>
 
         {isGoogleDriveUrl ? (
-            <div className="mb-6 h-[200vh]">
-              <iframe src={googleDriveEmbedUrl} width="100%" height="100%" frameBorder="0"></iframe>
+            <div className="h-[200vh]">
+              <iframe src={googleDriveEmbedUrl} width="100%" height="100%" frameBorder="0" className="w-full h-full"></iframe>
             </div>
           ) : note.pdf_url ? (
-            <div className="mb-6 h-[200vh]">
+            <div className="h-[200vh]">
               <PdfViewer fileUrl={note.pdf_url} />
             </div>
           ) : null}
 
-        {sanitizedContent && note.pdf_url && <Separator className="my-8" />}
+        {sanitizedContent && note.pdf_url && <Separator className="my-0" />}
 
         {sanitizedContent && (
            <div className="p-6 sm:p-8">
              <div
-              className="prose prose-invert prose-lg max-w-none prose-h1:font-headline prose-h1:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 prose-strong:text-foreground"
+              className="prose prose-lg dark:prose-invert max-w-none prose-h1:font-bold prose-h1:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 prose-strong:text-foreground"
               dangerouslySetInnerHTML={{ __html: sanitizedContent }}
             />
            </div>
         )}
 
         {!note.pdf_url && !sanitizedContent && (
-            <p className="text-muted-foreground text-center py-10">No content available for this note.</p>
+            <p className="text-muted-foreground text-center py-20">No content available for this note.</p>
         )}
       </article>
     </div>

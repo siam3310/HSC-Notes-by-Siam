@@ -8,16 +8,16 @@ export default async function SubjectsPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6 font-headline">Subjects</h1>
+      <h1 className="text-4xl font-bold mb-8 tracking-tight">Subjects</h1>
       {subjects.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {subjects.map((subject) => (
             <Link href={`/subject/${encodeURIComponent(subject)}`} key={subject}>
-              <Card className="hover:shadow-lg hover:border-primary/50 transition-all duration-300 group bg-card">
+              <Card className="hover:border-primary/80 transition-all duration-300 ease-in-out group bg-card">
                 <CardHeader>
-                  <CardTitle className="flex justify-between items-center text-lg">
+                  <CardTitle className="flex justify-between items-center text-xl font-semibold">
                     <span>{subject}</span>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-transform duration-300 ease-in-out group-hover:translate-x-1" />
                   </CardTitle>
                 </CardHeader>
               </Card>
@@ -25,7 +25,7 @@ export default async function SubjectsPage() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center text-center py-16 bg-card rounded-lg">
+        <div className="flex flex-col items-center justify-center text-center py-20 bg-card rounded-lg border">
           <h2 className="text-xl font-semibold text-foreground">No Subjects Found</h2>
           <p className="text-muted-foreground mt-2">Subjects are being prepared. Please check back later.</p>
         </div>

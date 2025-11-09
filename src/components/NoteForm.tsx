@@ -87,7 +87,6 @@ export function NoteForm({ note }: NoteFormProps) {
   const onSubmit = async (data: NoteFormValues) => {
     const formData = new FormData();
     
-    // Append all form data to FormData object
     Object.entries(data).forEach(([key, value]) => {
         if (key === 'pdf_file') {
             if (value && value.length > 0) {
@@ -112,6 +111,7 @@ export function NoteForm({ note }: NoteFormProps) {
                 description: `Successfully ${isEditMode ? 'updated' : 'created'} "${data.topic_title}".`,
             });
             router.push('/admin');
+            router.refresh();
         } else {
             throw new Error(result.error || 'Operation failed');
         }
@@ -126,17 +126,17 @@ export function NoteForm({ note }: NoteFormProps) {
 
   return (
     <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-6">
             <Link href="/admin">
-                <Button variant="ghost">
+                <Button variant="ghost" className="text-muted-foreground">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Admin Panel
+                    Back to Admin Dashboard
                 </Button>
             </Link>
         </div>
         <div className="bg-card p-6 sm:p-8 rounded-lg border">
             <header className="border-b pb-4 mb-6">
-                 <h1 className="text-3xl md:text-4xl font-bold font-headline">
+                 <h1 className="text-3xl font-bold tracking-tight">
                     {isEditMode ? 'Edit Note' : 'Create New Note'}
                 </h1>
                 <p className="text-muted-foreground mt-1">
@@ -195,7 +195,7 @@ export function NoteForm({ note }: NoteFormProps) {
                     <FormControl>
                         <Textarea
                             placeholder="<h1>Title</h1><p>Your note content here...</p>"
-                            className="min-h-[200px] font-code"
+                            className="min-h-[200px] font-mono"
                             {...field}
                         />
                     </FormControl>
@@ -271,13 +271,13 @@ export function NoteForm({ note }: NoteFormProps) {
                     </FormItem>
                 )}
                 />
-                <div className="flex justify-end">
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                <div className="flex justify-end gap-2">
+                    <Button type="button" variant="ghost" onClick={() => router.push('/admin')}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" disabled={form.formState.isSubmitting} className="w-32">
                         {form.formState.isSubmitting ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Please wait
-                            </>
+                            <Loader2 className="h-4 w-4 animate-spin" />
                         ) : isEditMode ? 'Update Note' : 'Create Note'}
                     </Button>
                 </div>

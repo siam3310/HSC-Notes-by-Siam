@@ -7,7 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { FileText } from 'lucide-react';
+import { FileText, BookOpen } from 'lucide-react';
 
 interface SubjectPageProps {
   params: {
@@ -30,18 +30,23 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6 font-headline">{subjectName}</h1>
+      <h1 className="text-4xl font-bold mb-8 tracking-tight">{subjectName}</h1>
       {Object.keys(notesByChapter).length > 0 ? (
       <Accordion type="single" collapsible className="w-full" defaultValue={Object.keys(notesByChapter)[0]}>
         {Object.entries(notesByChapter).map(([chapter, chapterNotes]) => (
           <AccordionItem value={chapter} key={chapter}>
-            <AccordionTrigger className="text-xl font-semibold hover:no-underline">{chapter}</AccordionTrigger>
+            <AccordionTrigger className="text-xl font-semibold hover:no-underline py-4">
+              <div className="flex items-center gap-3">
+                <BookOpen className="h-5 w-5 text-muted-foreground"/>
+                <span>{chapter}</span>
+              </div>
+            </AccordionTrigger>
             <AccordionContent>
-              <ul className="flex flex-col gap-2 pt-2">
+              <ul className="flex flex-col gap-1 pt-2 ml-4 border-l pl-6">
                 {chapterNotes.map((note) => (
                   <li key={note.id}>
-                    <Link href={`/note/${note.id}`} className="flex items-center gap-3 p-3 rounded-md hover:bg-secondary transition-colors">
-                      <FileText className="h-5 w-5 text-muted-foreground" />
+                    <Link href={`/note/${note.id}`} className="flex items-center gap-3 p-3 rounded-md hover:bg-secondary transition-colors duration-200 ease-in-out">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
                       <span className="text-foreground/90">{note.topic_title}</span>
                     </Link>
                   </li>
@@ -52,7 +57,7 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
         ))}
       </Accordion>
       ) : (
-        <div className="flex flex-col items-center justify-center text-center py-16 bg-card rounded-lg">
+        <div className="flex flex-col items-center justify-center text-center py-20 bg-card rounded-lg border">
           <h2 className="text-xl font-semibold text-foreground">No Notes Yet</h2>
           <p className="text-muted-foreground mt-2 max-w-md">No notes have been added for this subject. Please check back later for new content.</p>
         </div>

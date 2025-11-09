@@ -90,16 +90,19 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
    
     try {
         const validatedData = noteSchema.parse(rawData);
-        let pdfUrl = validatedData.pdf_url || null;
+        let pdfUrl = validatedData.pdf_url;
 
         // If there's a new file, upload it and get the new URL
         if (file && file.size > 0) {
             pdfUrl = await handleFileUpload(file);
         }
 
-        const noteDataToUpdate: Partial<Omit<Note, 'id' | 'created_at'>> = {
-            ...validatedData,
-            pdf_url: pdfUrl,
+        const noteDataToUpdate = {
+            subject: validatedData.subject,
+            chapter_name: validatedData.chapter_name,
+            topic_title: validatedData.topic_title,
+            is_published: validatedData.is_published,
+            pdf_url: pdfUrl || null,
             content_html: validatedData.content_html || null,
         };
 

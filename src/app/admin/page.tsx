@@ -49,14 +49,12 @@ export default function AdminPage() {
 
   useEffect(() => {
     // This effect runs only on the client, after the initial render.
-    // This prevents the hydration error.
     const sessionAuth = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (sessionAuth === 'true') {
       setIsAuthenticated(true);
       fetchNotes();
-    } else {
-      setLoading(false);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -90,7 +88,6 @@ export default function AdminPage() {
     setIsAuthenticated(false);
     setAllNotes([]);
     setFilteredNotes([]);
-    setLoading(false); // No longer loading data
   };
 
   const fetchNotes = async () => {
@@ -112,15 +109,20 @@ export default function AdminPage() {
 
   const handleTogglePublish = (note: Note) => {
     startTransition(async () => {
-      const updatedIsPublished = !note.is_published;
-      const result = await updateNoteAction(note.id, { is_published: updatedIsPublished });
+      const formData = new FormData();
+      formData.append('subject', note.subject);
+      formData.append('chapter_name', note.chapter_name);
+      formData.append('topic_title', note.topic_title);
+      formData.append('is_published', String(!note.is_published));
+      
+      const result = await updateNoteAction(note.id, formData);
 
       if (result.success) {
-        const updatedNotes = allNotes.map((n) => (n.id === note.id ? { ...n, is_published: updatedIsPublished } : n));
+        const updatedNotes = allNotes.map((n) => (n.id === note.id ? { ...n, is_published: !note.is_published } : n));
         setAllNotes(updatedNotes);
         toast({
           title: 'Status Updated',
-          description: `${note.topic_title} is now ${updatedIsPublished ? 'published' : 'a draft'}.`,
+          description: `${note.topic_title} is now ${!note.is_published ? 'published' : 'a draft'}.`,
         });
       } else {
         toast({
@@ -152,7 +154,6 @@ export default function AdminPage() {
   };
   
   if (loading) {
-    // This is the initial state for both server and client, preventing hydration mismatch.
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -165,7 +166,7 @@ export default function AdminPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-headline">Admin Login</CardTitle>
+            <CardTitle className="text-2xl">Admin Login</CardTitle>
             <CardDescription>Please enter the passcode to access the dashboard.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -187,22 +188,22 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-6">
       <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-            <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
             <p className="text-muted-foreground">
                 Manage all your study notes from here.
             </p>
         </div>
         <div className="flex items-center gap-2">
-             <Button variant="outline" onClick={handleLogout}>
-                <LogOut className="mr-2" />
+             <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
                 Logout
             </Button>
              <Link href="/admin/new">
-                <Button>
-                    <PlusCircle className="mr-2" />
+                <Button size="sm">
+                    <PlusCircle className="mr-2 h-4 w-4" />
                     Add New Note
                 </Button>
             </Link>
@@ -211,12 +212,10 @@ export default function AdminPage() {
       
       <Card>
         <CardHeader>
-            <CardTitle>All Notes</CardTitle>
-            <CardDescription>A list of all notes in the database. You can search, edit, and manage them here.</CardDescription>
-             <div className="relative pt-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+             <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                    placeholder="Search by topic, subject, or chapter..."
+                    placeholder="Search notes..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 w-full"
@@ -227,7 +226,7 @@ export default function AdminPage() {
           <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-secondary hover:bg-secondary">
                   <TableHead className="w-[40%]">Topic</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Status</TableHead>
@@ -241,7 +240,7 @@ export default function AdminPage() {
                     <TableRow key={note.id} className="[&_td]:py-3">
                       <TableCell className="font-medium">
                         <div className="flex flex-col">
-                            <span className="font-bold">{note.topic_title}</span>
+                            <span className="font-semibold">{note.topic_title}</span>
                             <span className="text-xs text-muted-foreground">{note.chapter_name}</span>
                         </div>
                       </TableCell>
@@ -255,13 +254,13 @@ export default function AdminPage() {
                                 disabled={isPending}
                                 aria-label={`Toggle publish status for ${note.topic_title}`}
                             />
-                            <Badge variant={note.is_published ? 'default' : 'secondary'}>
-                            {note.is_published ? 'Published' : 'Draft'}
+                            <Badge variant={note.is_published ? 'default' : 'secondary'} className="capitalize text-xs">
+                              {note.is_published ? 'Published' : 'Draft'}
                             </Badge>
                         </div>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        {format(new Date(note.created_at), 'dd MMM yyyy')}
+                        {format(new Date(note.created_at), 'dd MMM, yyyy')}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end items-center gap-1">
