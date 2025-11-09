@@ -68,7 +68,7 @@ export default function AdminNotesPage() {
     return allNotes.filter((note) =>
       note.topic_title.toLowerCase().includes(lowercasedFilter) ||
       note.subject_name.toLowerCase().includes(lowercasedFilter) ||
-      note.chapter_name.toLowerCase().includes(lowercasedFilter)
+      (note.chapter_name && note.chapter_name.toLowerCase().includes(lowercasedFilter))
     );
   }, [searchTerm, allNotes]);
 
@@ -232,7 +232,7 @@ export default function AdminNotesPage() {
                         <div className="flex flex-col">
                             <span className="font-semibold">{note.topic_title}</span>
                             <span className="text-xs text-muted-foreground md:hidden">{note.subject_name}</span>
-                            <span className="text-xs text-muted-foreground">{note.chapter_name}</span>
+                             {note.chapter_name && <span className="text-xs text-muted-foreground">{note.chapter_name}</span>}
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{note.subject_name}</TableCell>

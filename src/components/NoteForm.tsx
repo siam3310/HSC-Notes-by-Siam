@@ -38,7 +38,7 @@ const ACCEPTED_FILE_TYPES = ["application/pdf"];
 
 const noteFormSchema = z.object({
   subject_id: z.coerce.number().positive({ message: 'Please select a subject.' }),
-  chapter_id: z.coerce.number().positive({ message: 'Please select a chapter.' }),
+  chapter_id: z.coerce.number().optional().nullable(),
   topic_title: z.string().min(3, {
     message: 'Topic title must be at least 3 characters.',
   }),
@@ -79,7 +79,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
       }
     : {
         subject_id: 0,
-        chapter_id: 0,
+        chapter_id: null,
         topic_title: '',
         content: '',
         pdf_url: '',
@@ -103,7 +103,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     }
      // Reset chapter when subject changes, unless we are in edit mode and on initial load
     if (!isEditMode || (isEditMode && note?.subject_id !== selectedSubjectId)) {
-        form.setValue('chapter_id', 0);
+        form.setValue('chapter_id', null);
     }
   }, [selectedSubjectId, chapters, isEditMode, note, form]);
 
@@ -124,7 +124,11 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                 formData.append(key, value[0]);
             }
         } else if (value !== null && value !== undefined) {
-            formData.append(key, String(value));
+            if (key === 'chapter_id' && (value === 0 || value === '0')) {
+              // Don't append if it's the "No Chapter" placeholder
+            } else {
+              formData.append(key, String(value));
+            }
         }
     });
 
@@ -205,17 +209,18 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         name="chapter_id"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Chapter Name</FormLabel>
-                                <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value)} disabled={!selectedSubjectId || chaptersForSelectedSubject.length === 0}>
+                            <FormLabel>Chapter Name (Optional)</FormLabel>
+                                <Select onValueChange={(value) => field.onChange(value ? Number(value) : null)} value={String(field.value ?? '')} disabled={!selectedSubjectId}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder={!selectedSubjectId ? "First select a subject" : "Select a chapter"} />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                    {chaptersForSelectedSubject.map(chapter => (
-                                        <SelectItem key={chapter.id} value={String(chapter.id)}>{chapter.name}</SelectItem>
-                                    ))}
+                                        <SelectItem value="">No Chapter</SelectItem>
+                                        {chaptersForSelectedSubject.map(chapter => (
+                                            <SelectItem key={chapter.id} value={String(chapter.id)}>{chapter.name}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             <FormMessage />
@@ -358,5 +363,3 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
-
-    

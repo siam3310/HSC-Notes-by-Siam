@@ -22,7 +22,7 @@ export async function getSubjects(): Promise<string[]> {
 
   // Create a unique list of subject names from the notes.
   // The 'Set' object automatically handles duplicates.
-  const subjectNames = [...new Set(data.map(item => item.subjects.name))];
+  const subjectNames = [...new Set(data.map(item => item.subjects?.name).filter(Boolean) as string[])];
   
   // Sort the names alphabetically.
   subjectNames.sort();
@@ -51,7 +51,7 @@ export async function getNotesBySubject(subjectName: string): Promise<{ notes: N
   const transformedData = data.map(note => ({
     ...note,
     subject_name: note.subjects.name,
-    chapter_name: note.chapters.name,
+    chapter_name: note.chapters?.name ?? null,
   }));
 
   return { notes: transformedData as unknown as NoteWithRelations[] };
@@ -82,7 +82,7 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
   const transformedData = {
     ...data,
     subject_name: data.subjects.name,
-    chapter_name: data.chapters.name,
+    chapter_name: data.chapters?.name ?? null,
   };
 
   return transformedData as unknown as NoteWithRelations;

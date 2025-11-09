@@ -14,7 +14,7 @@ export interface Chapter {
 export interface Note {
   id: number;
   subject_id: number;
-  chapter_id: number;
+  chapter_id: number | null;
   topic_title: string;
   content?: string | null;
   pdf_url?: string | null;
@@ -25,5 +25,5 @@ export interface Note {
 // Used for displaying notes with their relations
 export interface NoteWithRelations extends Note {
   subject_name: string;
-  chapter_name: string;
+  chapter_name: string | null;
 }

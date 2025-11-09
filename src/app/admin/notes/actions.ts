@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -9,7 +10,7 @@ import { z } from 'zod';
 const noteSchema = z.object({
   topic_title: z.string().min(3),
   subject_id: z.coerce.number().positive(),
-  chapter_id: z.coerce.number().positive(),
+  chapter_id: z.coerce.number().positive().optional().nullable(),
   content: z.string().optional(),
   pdf_url: z.string().url().optional().or(z.literal('')),
   is_published: z.enum(['true', 'false']).transform(val => val === 'true'),
@@ -34,7 +35,7 @@ export async function getNotesAction(): Promise<{ notes: NoteWithRelations[]; er
     const transformedData = data.map(note => ({
         ...note,
         subject_name: note.subjects.name,
-        chapter_name: note.chapters.name,
+        chapter_name: note.chapters?.name ?? null,
         subjects: undefined, // remove the nested object
         chapters: undefined, // remove the nested object
     }));
@@ -76,7 +77,7 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
 
         const noteDataToInsert: Omit<Note, 'id' | 'created_at'> = {
             subject_id: validatedData.subject_id,
-            chapter_id: validatedData.chapter_id,
+            chapter_id: validatedData.chapter_id || null,
             topic_title: validatedData.topic_title,
             pdf_url: pdfUrl,
             content: validatedData.content || null,
@@ -93,6 +94,7 @@ export async function createNoteAction(formData: FormData): Promise<{ success: b
 
         revalidatePath('/admin/notes');
         revalidatePath('/admin');
+        revalidatePath('/subjects');
         return { success: true };
 
     } catch (error: any) {
@@ -117,7 +119,7 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
         const noteDataToUpdate = {
             topic_title: validatedData.topic_title,
             subject_id: validatedData.subject_id,
-            chapter_id: validatedData.chapter_id,
+            chapter_id: validatedData.chapter_id || null,
             is_published: validatedData.is_published,
             pdf_url: pdfUrl || null,
             content: validatedData.content || null,
@@ -136,6 +138,7 @@ export async function updateNoteAction(id: number, formData: FormData): Promise<
         revalidatePath(`/admin/edit/${id}`);
         revalidatePath(`/note/${id}`);
         revalidatePath('/admin');
+        revalidatePath('/subjects');
         return { success: true };
 
     } catch (error: any) {
@@ -157,6 +160,7 @@ export async function deleteNoteAction(id: number): Promise<{ success: boolean; 
 
     revalidatePath('/admin/notes');
     revalidatePath('/admin');
+    revalidatePath('/subjects');
     return { success: true };
 }
 
@@ -178,5 +182,6 @@ export async function deleteMultipleNotesAction(ids: number[]): Promise<{ succes
 
     revalidatePath('/admin/notes');
     revalidatePath('/admin');
+    revalidatePath('/subjects');
     return { success: true };
 }

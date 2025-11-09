@@ -45,7 +45,9 @@ export default async function NotePage({ params }: NotePageProps) {
       
       <article className="bg-card p-0 rounded-lg border">
         <header className="border-b p-6 sm:p-8">
-          <p className="text-sm text-muted-foreground tracking-wide uppercase">{note.subject_name} &gt; {note.chapter_name}</p>
+          <p className="text-sm text-muted-foreground tracking-wide uppercase">
+            {note.subject_name} {note.chapter_name && `> ${note.chapter_name}`}
+          </p>
           <h1 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">{note.topic_title}</h1>
         </header>
 
@@ -76,5 +78,3 @@ export default async function NotePage({ params }: NotePageProps) {
 }
 
 export const revalidate = 60; // Revalidate every 60 seconds
-
-    
