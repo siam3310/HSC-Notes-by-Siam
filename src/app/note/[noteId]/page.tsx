@@ -9,7 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { PdfViewer } from '@/components/PdfViewer';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { NoteWithRelations } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
@@ -99,6 +99,8 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
                             </div>
                         </DialogTrigger>
                         <DialogContent className="max-w-5xl h-[90vh] bg-transparent border-0 shadow-none">
+                             <DialogTitle className="sr-only">Enlarged Note Image</DialogTitle>
+                             <DialogDescription className="sr-only">An enlarged view of the note image for {note.topic_title}.</DialogDescription>
                              <Image 
                                 src={image.image_url}
                                 alt={`Note image for ${note.topic_title}`}
