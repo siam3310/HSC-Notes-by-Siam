@@ -86,10 +86,12 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     } else {
       setChaptersForSelectedSubject([]);
     }
-    if (form.formState.isDirty && 'subject_id' in form.formState.dirtyFields) {
+    // Do not reset chapter_id if we are just initializing the form in edit mode
+    const isInitialization = !form.formState.isDirty && isEditMode;
+    if (form.formState.dirtyFields.subject_id && !isInitialization) {
         form.setValue('chapter_id', null);
     }
-  }, [selectedSubjectId, chapters, form]);
+  }, [selectedSubjectId, chapters, form, isEditMode]);
 
   useEffect(() => {
     if (isEditMode && note) {
@@ -257,18 +259,20 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         </FormItem>
                     )}
 
-                    <FormField
+                    <Controller
                         control={form.control}
                         name="pdf"
-                        render={({ field: { onChange, ...fieldProps } }) => (
+                        render={({ field: { onChange, onBlur, name, ref } }) => (
                             <FormItem>
                                 <FormLabel>{(isEditMode && currentPdfs.length > 0) ? "Replace PDF" : "Upload PDF (Optional)"}</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        {...fieldProps}
-                                        type="file" 
+                                    <Input
+                                        type="file"
                                         accept={ACCEPTED_PDF_TYPE}
                                         onChange={(e) => onChange(e.target.files)}
+                                        onBlur={onBlur}
+                                        name={name}
+                                        ref={ref}
                                     />
                                 </FormControl>
                                 <FormDescription>Upload a single PDF file for this note.</FormDescription>
@@ -298,26 +302,29 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         </FormItem>
                     )}
 
-                     <FormField
+                    <Controller
                         control={form.control}
                         name="images"
-                        render={({ field: { onChange, ...fieldProps } }) => (
+                        render={({ field: { onChange, onBlur, name, ref } }) => (
                             <FormItem>
                                 <FormLabel>{(isEditMode && note?.images && note.images.length > 0) ? "Add More Images" : "Upload Images (Optional)"}</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        {...fieldProps}
-                                        type="file" 
-                                        accept={ACCEPTED_IMAGE_TYPES.join(',')} 
-                                        multiple 
+                                    <Input
+                                        type="file"
+                                        accept={ACCEPTED_IMAGE_TYPES.join(',')}
+                                        multiple
                                         onChange={(e) => onChange(e.target.files)}
+                                        onBlur={onBlur}
+                                        name={name}
+                                        ref={ref}
                                     />
                                 </FormControl>
                                 <FormDescription>Upload one or more images for this note.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
-                     />
+                    />
+
 
                     <FormField
                         control={form.control} name="is_published"
@@ -344,3 +351,5 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
+
+    
