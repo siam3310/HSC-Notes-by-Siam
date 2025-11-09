@@ -64,7 +64,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
   const hasPdfs = pdfs.length > 0;
 
   return (
-    <div>
+    <div className="-mt-8">
       <article className="p-0">
         <header className="border-b p-6 sm:p-8">
           <div className="text-sm text-muted-foreground tracking-wide uppercase">
