@@ -1,7 +1,17 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import { SubjectData, getSubjectsData, updateSubjectsData } from './actions';
+import type { Subject, Chapter } from '@/lib/types';
+import { 
+  getSubjectsAction,
+  createSubjectAction,
+  updateSubjectAction,
+  deleteSubjectAction,
+  getChaptersForSubjectAction,
+  createChapterAction,
+  updateChapterAction,
+  deleteChapterAction
+} from './actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,130 +21,155 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export default function SubjectsPage() {
-  const [subjects, setSubjects] = useState<SubjectData[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [chapters, setChapters] = useState<Record<number, Chapter[]>>({});
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const [newSubject, setNewSubject] = useState('');
-  const [newChapters, setNewChapters] = useState<Record<string, string>>({});
-  const [editingSubject, setEditingSubject] = useState<string | null>(null);
-  const [editingChapter, setEditingChapter] = useState<{ subject: string, chapter: string } | null>(null);
-  const [editedValue, setEditedValue] = useState('');
+  const [newSubjectName, setNewSubjectName] = useState('');
+  const [newChapterName, setNewChapterName] = useState<Record<number, string>>({});
   
+  const [editingSubject, setEditingSubject] = useState<{ id: number, name: string } | null>(null);
+  const [editingChapter, setEditingChapter] = useState<{ id: number, name: string, subjectId: number } | null>(null);
+  const [editedValue, setEditedValue] = useState('');
+
   useEffect(() => {
     fetchSubjects();
   }, []);
 
   const fetchSubjects = async () => {
     setLoading(true);
-    const result = await getSubjectsData();
-    if (result.success && result.data) {
-      setSubjects(result.data);
+    const result = await getSubjectsAction();
+    if (result.success && result.subjects) {
+      setSubjects(result.subjects);
     } else {
-      toast({ variant: 'destructive', title: 'Error', description: result.error });
+      toast({ variant: 'destructive', title: 'Error fetching subjects', description: result.error });
     }
     setLoading(false);
   };
   
-  const handleSaveChanges = () => {
-    startTransition(async () => {
-      const result = await updateSubjectsData(subjects);
-      if (result.success) {
-        toast({ title: 'Success', description: 'Subjects and chapters have been saved.' });
-        setEditingChapter(null);
-        setEditingSubject(null);
+  const handleAccordionToggle = async (subjectId: number) => {
+    if (!chapters[subjectId]) {
+      const result = await getChaptersForSubjectAction(subjectId);
+      if (result.success && result.chapters) {
+        setChapters(prev => ({ ...prev, [subjectId]: result.chapters }));
       } else {
-        toast({ variant: 'destructive', title: 'Error saving changes', description: result.error });
+        toast({ variant: 'destructive', title: 'Error fetching chapters', description: result.error });
       }
-    });
+    }
   };
 
   const handleAddSubject = () => {
-    if (newSubject.trim() && !subjects.find(s => s.name.toLowerCase() === newSubject.trim().toLowerCase())) {
-      const updatedSubjects = [...subjects, { name: newSubject.trim(), chapters: [] }];
-      setSubjects(updatedSubjects);
-      setNewSubject('');
-    } else {
-        toast({ variant: 'destructive', title: 'Invalid Name', description: 'Subject name cannot be empty or a duplicate.'})
+    if (newSubjectName.trim() === '') {
+        toast({ variant: 'destructive', title: 'Error', description: 'Subject name cannot be empty.' });
+        return;
     }
-  };
-
-  const handleDeleteSubject = (subjectName: string) => {
-    const updatedSubjects = subjects.filter(s => s.name !== subjectName);
-    setSubjects(updatedSubjects);
-  };
-  
-  const handleAddChapter = (subjectName: string) => {
-    const chapterName = newChapters[subjectName]?.trim();
-    if (chapterName) {
-      const updatedSubjects = subjects.map(s => {
-        if (s.name === subjectName) {
-            if (s.chapters.find(c => c.toLowerCase() === chapterName.toLowerCase())) {
-                toast({ variant: 'destructive', title: 'Duplicate Chapter', description: 'This chapter already exists for the subject.' });
-                return s;
-            }
-          return { ...s, chapters: [...s.chapters, chapterName] };
-        }
-        return s;
-      });
-      setSubjects(updatedSubjects);
-      setNewChapters({ ...newChapters, [subjectName]: '' });
-    }
-  };
-
-  const handleDeleteChapter = (subjectName: string, chapterName: string) => {
-    const updatedSubjects = subjects.map(s => {
-      if (s.name === subjectName) {
-        return { ...s, chapters: s.chapters.filter(c => c !== chapterName) };
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append('name', newSubjectName);
+      const result = await createSubjectAction(formData);
+      if (result.success) {
+        toast({ title: 'Success', description: 'Subject added successfully.' });
+        setNewSubjectName('');
+        fetchSubjects();
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error });
       }
-      return s;
     });
-    setSubjects(updatedSubjects);
-  };
-
-  const startEditingSubject = (subject: SubjectData) => {
-    setEditingSubject(subject.name);
-    setEditedValue(subject.name);
-    setEditingChapter(null);
   };
 
   const handleUpdateSubject = () => {
-    if (editedValue.trim() && editingSubject) {
-       if (editedValue.trim().toLowerCase() !== editingSubject.toLowerCase() && subjects.find(s => s.name.toLowerCase() === editedValue.trim().toLowerCase())) {
-            toast({ variant: 'destructive', title: 'Duplicate Subject', description: 'A subject with this name already exists.' });
-            return;
-       }
-      const updatedSubjects = subjects.map(s => s.name === editingSubject ? { ...s, name: editedValue.trim() } : s);
-      setSubjects(updatedSubjects);
-      setEditingSubject(null);
+    if (!editingSubject || editedValue.trim() === '') return;
+    startTransition(async () => {
+      const result = await updateSubjectAction(editingSubject.id, editedValue);
+      if (result.success) {
+        toast({ title: 'Success', description: 'Subject updated successfully.' });
+        setSubjects(subjects.map(s => s.id === editingSubject.id ? { ...s, name: editedValue } : s));
+        setEditingSubject(null);
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error });
+      }
+    });
+  };
+  
+  const handleDeleteSubject = (subjectId: number) => {
+    startTransition(async () => {
+      const result = await deleteSubjectAction(subjectId);
+      if (result.success) {
+        toast({ title: 'Success', description: 'Subject deleted successfully.' });
+        setSubjects(subjects.filter(s => s.id !== subjectId));
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error });
+      }
+    });
+  };
+  
+  const handleAddChapter = (subjectId: number) => {
+    const chapterName = newChapterName[subjectId]?.trim();
+    if (!chapterName) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Chapter name cannot be empty.' });
+        return;
     }
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append('name', chapterName);
+      formData.append('subject_id', String(subjectId));
+      const result = await createChapterAction(formData);
+      if (result.success) {
+        toast({ title: 'Success', description: 'Chapter added successfully.' });
+        setNewChapterName({ ...newChapterName, [subjectId]: '' });
+        handleAccordionToggle(subjectId); // Refetch chapters
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error });
+      }
+    });
+  };
+  
+  const handleUpdateChapter = () => {
+    if (!editingChapter || editedValue.trim() === '') return;
+    startTransition(async () => {
+      const result = await updateChapterAction(editingChapter.id, editedValue);
+      if (result.success) {
+        toast({ title: 'Success', description: 'Chapter updated successfully.' });
+        setChapters(prev => ({
+            ...prev,
+            [editingChapter.subjectId]: prev[editingChapter.subjectId].map(c => c.id === editingChapter.id ? { ...c, name: editedValue } : c)
+        }));
+        setEditingChapter(null);
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error });
+      }
+    });
+  };
+  
+  const handleDeleteChapter = (chapterId: number, subjectId: number) => {
+    startTransition(async () => {
+      const result = await deleteChapterAction(chapterId);
+      if (result.success) {
+        toast({ title: 'Success', description: 'Chapter deleted successfully.' });
+        setChapters(prev => ({
+            ...prev,
+            [subjectId]: prev[subjectId].filter(c => c.id !== chapterId)
+        }));
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error });
+      }
+    });
   };
 
-  const startEditingChapter = (subjectName: string, chapterName: string) => {
-    setEditingChapter({ subject: subjectName, chapter: chapterName });
-    setEditedValue(chapterName);
+  const startEditingSubject = (subject: Subject) => {
+    setEditingSubject({ id: subject.id, name: subject.name });
+    setEditedValue(subject.name);
+    setEditingChapter(null);
+  };
+  
+  const startEditingChapter = (chapter: Chapter, subjectId: number) => {
+    setEditingChapter({ id: chapter.id, name: chapter.name, subjectId });
+    setEditedValue(chapter.name);
     setEditingSubject(null);
   };
 
-  const handleUpdateChapter = () => {
-    if (editedValue.trim() && editingChapter) {
-      const updatedSubjects = subjects.map(s => {
-        if (s.name === editingChapter.subject) {
-             if (editedValue.trim().toLowerCase() !== editingChapter.chapter.toLowerCase() && s.chapters.find(c => c.toLowerCase() === editedValue.trim().toLowerCase())) {
-                toast({ variant: 'destructive', title: 'Duplicate Chapter', description: 'This chapter already exists for the subject.' });
-                return s;
-            }
-          const newChapters = s.chapters.map(c => c === editingChapter.chapter ? editedValue.trim() : c);
-          return { ...s, chapters: newChapters };
-        }
-        return s;
-      });
-      setSubjects(updatedSubjects);
-      setEditingChapter(null);
-    }
-  };
-  
   if (loading) {
     return (
       <div className="flex h-48 items-center justify-center">
@@ -148,12 +183,8 @@ export default function SubjectsPage() {
       <header className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
             <h1 className="text-3xl font-bold">Subjects & Chapters</h1>
-            <p className="text-muted-foreground">Manage all subjects and their corresponding chapters.</p>
+            <p className="text-muted-foreground">Manage all subjects and their corresponding chapters from the database.</p>
         </div>
-         <Button onClick={handleSaveChanges} disabled={isPending}>
-            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-            Save All Changes
-        </Button>
       </header>
 
       <Card>
@@ -165,11 +196,15 @@ export default function SubjectsPage() {
             <div className="flex gap-2">
                 <Input
                 placeholder="e.g., Biology 1st Paper"
-                value={newSubject}
-                onChange={e => setNewSubject(e.target.value)}
+                value={newSubjectName}
+                onChange={e => setNewSubjectName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddSubject()}
+                disabled={isPending}
                 />
-                <Button onClick={handleAddSubject}><PlusCircle className="h-4 w-4 mr-2"/>Add Subject</Button>
+                <Button onClick={handleAddSubject} disabled={isPending}>
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <PlusCircle className="h-4 w-4 mr-2"/>}
+                  Add Subject
+                </Button>
             </div>
         </CardContent>
       </Card>
@@ -183,26 +218,26 @@ export default function SubjectsPage() {
             {subjects.length > 0 ? (
                 <Accordion type="multiple" className="w-full">
                     {subjects.map(subject => (
-                    <AccordionItem value={subject.name} key={subject.name}>
+                    <AccordionItem value={String(subject.id)} key={subject.id} onFocus={() => handleAccordionToggle(subject.id)}>
                         <AccordionTrigger className="text-lg font-semibold hover:no-underline py-4 group">
                         <div className="flex items-center gap-3 flex-grow">
                             <BookOpen className="h-5 w-5 text-muted-foreground" />
-                            {editingSubject === subject.name ? (
+                            {editingSubject?.id === subject.id ? (
                                 <div className="flex gap-2 w-full">
                                     <Input value={editedValue} onChange={e => setEditedValue(e.target.value)} className="h-8" onKeyDown={e => e.key === 'Enter' && handleUpdateSubject()}/>
-                                    <Button size="icon" className="h-8 w-8" onClick={handleUpdateSubject}><Save className="h-4 w-4"/></Button>
+                                    <Button size="icon" className="h-8 w-8" onClick={handleUpdateSubject} disabled={isPending}><Save className="h-4 w-4"/></Button>
                                     <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingSubject(null)}><X className="h-4 w-4"/></Button>
                                 </div>
                             ) : (
-                                <span className="flex-grow">{subject.name}</span>
+                                <span className="flex-grow text-left">{subject.name}</span>
                             )}
                         </div>
                          {!editingSubject && !editingChapter && (
                             <div className="flex items-center mr-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); startEditingSubject(subject)}}><Edit className="h-4 w-4"/></Button>
+                                <Button variant="ghost" size="icon" disabled={isPending} onClick={(e) => {e.stopPropagation(); startEditingSubject(subject)}}><Edit className="h-4 w-4"/></Button>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={e => e.stopPropagation()}><Trash2 className="h-4 w-4"/></Button>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isPending} onClick={e => e.stopPropagation()}><Trash2 className="h-4 w-4"/></Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
@@ -213,7 +248,7 @@ export default function SubjectsPage() {
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteSubject(subject.name)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                        <AlertDialogAction onClick={() => handleDeleteSubject(subject.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
@@ -223,33 +258,33 @@ export default function SubjectsPage() {
                         <AccordionContent>
                         <div className="space-y-4 pl-8 pt-2">
                              <ul className="flex flex-col gap-2">
-                                {subject.chapters.map(chapter => (
-                                    <li key={chapter} className="flex items-center gap-3 p-2 rounded-md group hover:bg-secondary">
+                                {chapters[subject.id]?.map(chapter => (
+                                    <li key={chapter.id} className="flex items-center gap-3 p-2 rounded-md group hover:bg-secondary">
                                        <FileText className="h-4 w-4 text-muted-foreground" />
-                                       {editingChapter?.subject === subject.name && editingChapter?.chapter === chapter ? (
+                                       {editingChapter?.id === chapter.id ? (
                                             <div className="flex gap-2 w-full">
                                                 <Input value={editedValue} onChange={e => setEditedValue(e.target.value)} className="h-8" onKeyDown={e => e.key === 'Enter' && handleUpdateChapter()}/>
-                                                <Button size="icon" className="h-8 w-8" onClick={handleUpdateChapter}><Save className="h-4 w-4"/></Button>
+                                                <Button size="icon" className="h-8 w-8" onClick={handleUpdateChapter} disabled={isPending}><Save className="h-4 w-4"/></Button>
                                                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingChapter(null)}><X className="h-4 w-4"/></Button>
                                             </div>
                                        ) : (
                                            <>
-                                            <span className="flex-grow text-foreground/90">{chapter}</span>
+                                            <span className="flex-grow text-foreground/90">{chapter.name}</span>
                                             {!editingSubject && !editingChapter && (
                                                 <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button variant="ghost" size="icon" onClick={() => startEditingChapter(subject.name, chapter)}><Edit className="h-4 w-4"/></Button>
+                                                    <Button variant="ghost" size="icon" disabled={isPending} onClick={() => startEditingChapter(chapter, subject.id)}><Edit className="h-4 w-4"/></Button>
                                                     <AlertDialog>
                                                         <AlertDialogTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                                                            <Button variant="ghost" size="icon" disabled={isPending} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
                                                         </AlertDialogTrigger>
                                                         <AlertDialogContent>
                                                             <AlertDialogHeader>
                                                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                            <AlertDialogDescription>This will permanently delete the chapter &quot;{chapter}&quot;.</AlertDialogDescription>
+                                                            <AlertDialogDescription>This will permanently delete the chapter &quot;{chapter.name}&quot;.</AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
                                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDeleteChapter(subject.name, chapter)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                                            <AlertDialogAction onClick={() => handleDeleteChapter(chapter.id, subject.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                                                             </AlertDialogFooter>
                                                         </AlertDialogContent>
                                                     </AlertDialog>
@@ -259,18 +294,20 @@ export default function SubjectsPage() {
                                        )}
                                     </li>
                                 ))}
-                                {subject.chapters.length === 0 && (
+                                {!chapters[subject.id] && <Loader2 className="h-4 w-4 animate-spin my-2" />}
+                                {chapters[subject.id] && chapters[subject.id].length === 0 && (
                                     <li className="text-muted-foreground p-2 text-sm">No chapters yet. Add one below.</li>
                                 )}
                             </ul>
                             <div className="flex gap-2">
                                 <Input
                                     placeholder="Add new chapter..."
-                                    value={newChapters[subject.name] || ''}
-                                    onChange={e => setNewChapters({ ...newChapters, [subject.name]: e.target.value })}
-                                    onKeyDown={e => e.key === 'Enter' && handleAddChapter(subject.name)}
+                                    value={newChapterName[subject.id] || ''}
+                                    onChange={e => setNewChapterName({ ...newChapterName, [subject.id]: e.target.value })}
+                                    onKeyDown={e => e.key === 'Enter' && handleAddChapter(subject.id)}
+                                    disabled={isPending}
                                 />
-                                <Button onClick={() => handleAddChapter(subject.name)} variant="secondary">
+                                <Button onClick={() => handleAddChapter(subject.id)} variant="secondary" disabled={isPending}>
                                     <PlusCircle className="h-4 w-4 mr-2"/>Add Chapter
                                 </Button>
                             </div>

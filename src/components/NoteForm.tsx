@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -23,25 +22,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { Note } from '@/lib/types';
+import type { Note, Subject, Chapter } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { createNoteAction, updateNoteAction } from '@/app/admin/actions';
-import { ArrowLeft, Loader2 } from 'lucide-react';
-import Link from 'next/link';
-import { subjectChapters, subjects } from '@/lib/subjects';
-import { useState } from 'react';
+import { createNoteAction, updateNoteAction } from '@/app/admin/notes/actions';
+import { Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(() => import('./RichTextEditor'), { ssr: false });
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["application/pdf"];
 
 const noteFormSchema = z.object({
-  subject: z.string().min(2, {
-    message: 'Please select a subject.',
-  }),
-  chapter_name: z.string().min(3, {
-    message: 'Please select a chapter.',
-  }),
+  subject_id: z.coerce.number().positive({ message: 'Please select a subject.' }),
+  chapter_id: z.coerce.number().positive({ message: 'Please select a chapter.' }),
   topic_title: z.string().min(3, {
     message: 'Topic title must be at least 3 characters.',
   }),
@@ -61,17 +57,19 @@ type NoteFormValues = z.infer<typeof noteFormSchema>;
 
 interface NoteFormProps {
   note?: Note | null;
+  subjects: Subject[];
+  chapters: Chapter[];
 }
 
-export function NoteForm({ note }: NoteFormProps) {
+export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const isEditMode = !!note;
 
   const defaultValues = isEditMode && note
     ? {
-        subject: note.subject,
-        chapter_name: note.chapter_name,
+        subject_id: note.subject_id,
+        chapter_id: note.chapter_id,
         topic_title: note.topic_title,
         content: note.content || '',
         pdf_url: note.pdf_url || '',
@@ -79,8 +77,8 @@ export function NoteForm({ note }: NoteFormProps) {
         pdf_file: undefined,
       }
     : {
-        subject: '',
-        chapter_name: '',
+        subject_id: 0,
+        chapter_id: 0,
         topic_title: '',
         content: '',
         pdf_url: '',
@@ -93,8 +91,23 @@ export function NoteForm({ note }: NoteFormProps) {
     defaultValues,
   });
 
-  const selectedSubject = form.watch('subject');
-  const chaptersForSelectedSubject = selectedSubject ? subjectChapters[selectedSubject as keyof typeof subjectChapters] || [] : [];
+  const selectedSubjectId = form.watch('subject_id');
+  const [chaptersForSelectedSubject, setChaptersForSelectedSubject] = useState<Chapter[]>([]);
+
+  useEffect(() => {
+    if (selectedSubjectId > 0) {
+      setChaptersForSelectedSubject(chapters.filter(c => c.subject_id === selectedSubjectId));
+    } else {
+      setChaptersForSelectedSubject([]);
+    }
+  }, [selectedSubjectId, chapters]);
+
+  // When in edit mode, populate chapters for the initial subject
+  useEffect(() => {
+    if (isEditMode && note?.subject_id) {
+       setChaptersForSelectedSubject(chapters.filter(c => c.subject_id === note.subject_id));
+    }
+  }, [isEditMode, note, chapters]);
 
 
   const onSubmit = async (data: NoteFormValues) => {
@@ -153,14 +166,14 @@ export function NoteForm({ note }: NoteFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
-                  name="subject"
+                  name="subject_id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subject</FormLabel>
                       <Select onValueChange={(value) => {
-                        field.onChange(value);
-                        form.setValue('chapter_name', ''); // Reset chapter when subject changes
-                      }} defaultValue={field.value}>
+                        field.onChange(Number(value));
+                        form.setValue('chapter_id', 0); // Reset chapter when subject changes
+                      }} defaultValue={String(field.value)}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a subject" />
@@ -168,7 +181,7 @@ export function NoteForm({ note }: NoteFormProps) {
                         </FormControl>
                         <SelectContent>
                           {subjects.map(subject => (
-                            <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                            <SelectItem key={subject.id} value={String(subject.id)}>{subject.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -178,11 +191,11 @@ export function NoteForm({ note }: NoteFormProps) {
                 />
                 <FormField
                   control={form.control}
-                  name="chapter_name"
+                  name="chapter_id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Chapter Name</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!selectedSubject}>
+                        <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value)} disabled={!selectedSubjectId}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select a chapter" />
@@ -190,7 +203,7 @@ export function NoteForm({ note }: NoteFormProps) {
                             </FormControl>
                             <SelectContent>
                             {chaptersForSelectedSubject.map(chapter => (
-                                <SelectItem key={chapter} value={chapter}>{chapter}</SelectItem>
+                                <SelectItem key={chapter.id} value={String(chapter.id)}>{chapter.name}</SelectItem>
                             ))}
                             </SelectContent>
                         </Select>
@@ -212,25 +225,24 @@ export function NoteForm({ note }: NoteFormProps) {
                 </FormItem>
             )}
             />
-            <FormField
-            control={form.control}
-            name="content"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Content</FormLabel>
-                <FormControl>
-                    <Textarea
-                        placeholder="Your note content here..."
-                        className="min-h-[200px]"
-                        {...field}
-                    />
-                </FormControl>
-                 <FormDescription>
-                    Add simple text content if there is no PDF.
-                </FormDescription>
-                <FormMessage />
-                </FormItem>
-            )}
+            <Controller
+                name="content"
+                control={form.control}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Content</FormLabel>
+                        <FormControl>
+                            <RichTextEditor
+                                value={field.value}
+                                onChange={field.onChange}
+                            />
+                        </FormControl>
+                        <FormDescription>
+                           Add rich text content if there is no PDF.
+                        </FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
             />
 
             <FormField

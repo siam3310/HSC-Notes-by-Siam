@@ -1,54 +1,79 @@
 import { supabase } from './supabase';
 import { supabaseAdmin } from './supabaseAdmin';
-import type { Note } from './types';
-import subjectsData from '@/lib/data/subjects.json';
+import type { Note, NoteWithRelations, Subject, Chapter } from './types';
 
 // =================================================================
 // PUBLIC-FACING FUNCTIONS (using anon key)
 // =================================================================
 
 export async function getSubjects(): Promise<string[]> {
-  // Now reads from the JSON file to ensure consistency
-  return subjectsData.map(s => s.name);
+  const { data, error } = await supabase
+    .from('subjects')
+    .select('name')
+    .order('name', { ascending: true });
+  
+  if (error) {
+    console.error('Error fetching subjects:', error);
+    return [];
+  }
+  return data.map(s => s.name);
 }
 
-export async function getNotesBySubject(subjectName: string): Promise<Note[]> {
+export async function getNotesBySubject(subjectName: string): Promise<{ notes: NoteWithRelations[], error?: string}> {
   const { data, error } = await supabase
     .from('notes')
-    .select('*')
-    .eq('subject', subjectName)
+    .select(`
+      *,
+      subjects!inner(name),
+      chapters(name)
+    `)
+    .eq('subjects.name', subjectName)
     .eq('is_published', true)
-    .order('chapter_name', { ascending: true })
-    .order('topic_title', { ascending: true });
+    .order('created_at', { ascending: true });
 
   if (error) {
     console.error(`Error fetching notes for subject ${subjectName}:`, error);
-    return [];
+    return { notes: [], error: error.message };
   }
 
-  return data as Note[];
+  const transformedData = data.map(note => ({
+    ...note,
+    subject_name: note.subjects.name,
+    chapter_name: note.chapters.name,
+  }));
+
+  return { notes: transformedData as unknown as NoteWithRelations[] };
 }
 
-export async function getNoteById(noteId: number): Promise<Note | null> {
+export async function getNoteById(noteId: number): Promise<NoteWithRelations | null> {
   const { data, error } = await supabase
     .from('notes')
-    .select('*')
+    .select(`
+      *,
+      subjects (name),
+      chapters (name)
+    `)
     .eq('id', noteId)
     .single();
 
   if (error) {
-    if (error.code !== 'PGRST116') { // Ignore "No rows found" error for public view
+    if (error.code !== 'PGRST116') { // Ignore "No rows found" error
       console.error(`Error fetching note with id ${noteId}:`, error);
     }
     return null;
   }
   
-  // For public view, only return if it's published.
-  if(!data.is_published) {
+  if (!data.is_published) {
     return null;
   }
 
-  return data as Note;
+  const transformedData = {
+    ...data,
+    subject_name: data.subjects.name,
+    chapter_name: data.chapters.name,
+  };
+
+  return transformedData as unknown as NoteWithRelations;
 }
 
 
@@ -56,22 +81,6 @@ export async function getNoteById(noteId: number): Promise<Note | null> {
 // ADMIN-ONLY FUNCTIONS (using service_role key)
 // =================================================================
 
-// Admin function to get all notes, including drafts
-export async function getNotes(): Promise<Note[]> {
-    const { data, error } = await supabaseAdmin
-        .from('notes')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error('Error fetching all notes:', error);
-        return [];
-    }
-
-    return data as Note[];
-}
-
-// Admin function to get a single note by ID, including drafts
 export async function getNoteByIdAdmin(noteId: number): Promise<Note | null> {
   const { data, error } = await supabaseAdmin
     .from('notes')
@@ -84,4 +93,22 @@ export async function getNoteByIdAdmin(noteId: number): Promise<Note | null> {
     return null;
   }
   return data as Note;
+}
+
+
+export async function getSubjectsAndChapters(): Promise<{ subjects: Subject[], chapters: Chapter[] }> {
+    const [subjectsRes, chaptersRes] = await Promise.all([
+        supabaseAdmin.from('subjects').select('*').order('name'),
+        supabaseAdmin.from('chapters').select('*').order('name')
+    ]);
+
+    if (subjectsRes.error || chaptersRes.error) {
+        console.error('Error fetching subjects/chapters:', subjectsRes.error || chaptersRes.error);
+        return { subjects: [], chapters: [] };
+    }
+
+    return {
+        subjects: subjectsRes.data,
+        chapters: chaptersRes.data
+    };
 }

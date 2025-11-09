@@ -1,51 +1,211 @@
 'use server';
 
-import fs from 'fs/promises';
-import path from 'path';
-import { z } from 'zod';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import type { Subject, Chapter } from '@/lib/types';
 
-export interface SubjectData {
-    name: string;
-    chapters: string[];
-}
-
-const subjectsFilePath = path.join(process.cwd(), 'src', 'lib', 'data', 'subjects.json');
+// ==================================
+// SUBJECT ACTIONS
+// ==================================
 
 const subjectSchema = z.object({
-    name: z.string().min(2, "Subject name must be at least 2 characters."),
-    chapters: z.array(z.string().min(2, "Chapter name must be at least 2 characters.")),
+    name: z.string().min(2, "Subject name must be at least 2 characters long."),
 });
 
-// Action to read subjects data from the JSON file
-export async function getSubjectsData(): Promise<{ success: boolean; data?: SubjectData[]; error?: string }> {
-    try {
-        const fileContent = await fs.readFile(subjectsFilePath, 'utf-8');
-        const data = JSON.parse(fileContent);
-        return { success: true, data };
-    } catch (error: any) {
-        console.error("Failed to read subjects data:", error);
-        if (error.code === 'ENOENT') {
-            return { success: true, data: [] }; // File doesn't exist, return empty array
-        }
-        return { success: false, error: "Failed to load subject data." };
+export async function getSubjectsAction(): Promise<{ subjects: Subject[], error?: string }> {
+    const { data, error } = await supabaseAdmin
+        .from('subjects')
+        .select('*')
+        .order('name', { ascending: true });
+    
+    if (error) {
+        return { subjects: [], error: error.message };
     }
+    return { subjects: data };
 }
 
-// Action to write subjects data to the JSON file
-export async function updateSubjectsData(subjects: SubjectData[]): Promise<{ success: boolean; error?: string }> {
-    try {
-        // Validate the entire structure
-        const validatedData = z.array(subjectSchema).parse(subjects);
-        await fs.writeFile(subjectsFilePath, JSON.stringify(validatedData, null, 2));
-        revalidatePath('/admin/subjects');
-        revalidatePath('/admin/new');
-        return { success: true };
-    } catch (error: any) {
-        console.error("Failed to write subjects data:", error);
-         if (error instanceof z.ZodError) {
-            return { success: false, error: `Validation failed: ${error.errors.map(e => e.message).join(', ')}` };
-        }
-        return { success: false, error: "Failed to save subject data." };
+export async function createSubjectAction(formData: FormData): Promise<{ success: boolean, error?: string }> {
+    const validatedFields = subjectSchema.safeParse({ name: formData.get('name') });
+    
+    if (!validatedFields.success) {
+        return { success: false, error: validatedFields.error.flatten().fieldErrors.name?.[0] };
     }
+
+    const { error } = await supabaseAdmin
+        .from('subjects')
+        .insert({ name: validatedFields.data.name });
+
+    if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+            return { success: false, error: 'A subject with this name already exists.' };
+        }
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin/subjects');
+    revalidatePath('/admin/new');
+    return { success: true };
+}
+
+
+export async function updateSubjectAction(id: number, name: string): Promise<{ success: boolean; error?: string }> {
+    const validatedFields = subjectSchema.safeParse({ name });
+
+    if (!validatedFields.success) {
+        return { success: false, error: validatedFields.error.flatten().fieldErrors.name?.[0] };
+    }
+
+    const { error } = await supabaseAdmin
+        .from('subjects')
+        .update({ name: validatedFields.data.name })
+        .eq('id', id);
+
+    if (error) {
+       if (error.code === '23505') {
+            return { success: false, error: 'A subject with this name already exists.' };
+        }
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin/subjects');
+    revalidatePath('/admin/new');
+    return { success: true };
+}
+
+
+export async function deleteSubjectAction(id: number): Promise<{ success: boolean; error?: string }> {
+    // We need to check if any notes are associated with this subject first.
+    // The foreign key constraint ON DELETE RESTRICT will prevent deletion if notes exist.
+    const { data: notes, error: notesError } = await supabaseAdmin
+        .from('notes')
+        .select('id')
+        .eq('subject_id', id)
+        .limit(1);
+
+    if (notesError) {
+         return { success: false, error: `Could not verify associated notes: ${notesError.message}` };
+    }
+
+    if (notes && notes.length > 0) {
+        return { success: false, error: 'Cannot delete subject. There are still notes associated with it.' };
+    }
+
+    const { error } = await supabaseAdmin
+        .from('subjects')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin/subjects');
+    revalidatePath('/admin/new');
+    return { success: true };
+}
+
+
+// ==================================
+// CHAPTER ACTIONS
+// ==================================
+
+const chapterSchema = z.object({
+    name: z.string().min(2, "Chapter name must be at least 2 characters long."),
+    subject_id: z.number().positive(),
+});
+
+export async function getChaptersForSubjectAction(subjectId: number): Promise<{ chapters: Chapter[], error?: string }> {
+    const { data, error } = await supabaseAdmin
+        .from('chapters')
+        .select('*')
+        .eq('subject_id', subjectId)
+        .order('name', { ascending: true });
+
+    if (error) {
+        return { chapters: [], error: error.message };
+    }
+    return { chapters: data };
+}
+
+
+export async function createChapterAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
+    const subjectId = Number(formData.get('subject_id'));
+    const validatedFields = chapterSchema.safeParse({ 
+        name: formData.get('name'),
+        subject_id: subjectId,
+    });
+
+    if (!validatedFields.success) {
+        return { success: false, error: validatedFields.error.flatten().fieldErrors.name?.[0] };
+    }
+
+    const { error } = await supabaseAdmin
+        .from('chapters')
+        .insert({ ...validatedFields.data });
+
+    if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+            return { success: false, error: 'A chapter with this name already exists for this subject.' };
+        }
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin/subjects');
+    revalidatePath('/admin/new');
+    return { success: true };
+}
+
+
+export async function updateChapterAction(id: number, name: string): Promise<{ success: boolean; error?: string }> {
+     const validatedName = z.string().min(2, "Chapter name must be at least 2 characters long.").safeParse(name);
+
+    if (!validatedName.success) {
+        return { success: false, error: validatedName.error.flatten().fieldErrors._errors[0] };
+    }
+
+    const { error } = await supabaseAdmin
+        .from('chapters')
+        .update({ name: validatedName.data })
+        .eq('id', id);
+
+    if (error) {
+        if (error.code === '23505') {
+            return { success: false, error: 'A chapter with this name already exists for this subject.' };
+        }
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin/subjects');
+    revalidatePath('/admin/new');
+    return { success: true };
+}
+
+export async function deleteChapterAction(id: number): Promise<{ success: boolean; error?: string }> {
+     const { data: notes, error: notesError } = await supabaseAdmin
+        .from('notes')
+        .select('id')
+        .eq('chapter_id', id)
+        .limit(1);
+
+    if (notesError) {
+         return { success: false, error: `Could not verify associated notes: ${notesError.message}` };
+    }
+
+    if (notes && notes.length > 0) {
+        return { success: false, error: 'Cannot delete chapter. There are still notes associated with it.' };
+    }
+
+    const { error } = await supabaseAdmin
+        .from('chapters')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin/subjects');
+    revalidatePath('/admin/new');
+    return { success: true };
 }

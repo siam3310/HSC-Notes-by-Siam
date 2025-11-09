@@ -1,4 +1,4 @@
-import { getNoteByIdAdmin } from '@/lib/data';
+import { getNoteByIdAdmin, getSubjectsAndChapters } from '@/lib/data';
 import { NoteForm } from '@/components/NoteForm';
 import { notFound } from 'next/navigation';
 
@@ -14,11 +14,14 @@ export default async function EditNotePage({ params }: EditNotePageProps) {
     return notFound();
   }
   
-  const note = await getNoteByIdAdmin(noteId);
+  const [note, { subjects, chapters }] = await Promise.all([
+    getNoteByIdAdmin(noteId),
+    getSubjectsAndChapters()
+  ]);
 
   if (!note) {
     return notFound();
   }
 
-  return <NoteForm note={note} />;
+  return <NoteForm note={note} subjects={subjects} chapters={chapters} />;
 }

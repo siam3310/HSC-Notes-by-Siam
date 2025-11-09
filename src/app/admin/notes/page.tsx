@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useTransition, useMemo } from 'react';
-import type { Note } from '@/lib/types';
+import type { NoteWithRelations } from '@/lib/types';
 import {
   Table,
   TableBody,
@@ -30,11 +30,11 @@ import {
 import { PlusCircle, Edit, Trash2, Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { deleteNoteAction, getNotesAction, deleteMultipleNotesAction } from '../actions';
+import { getNotesAction, deleteNoteAction, deleteMultipleNotesAction } from './actions';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '@/components/ui/card';
 
 export default function AdminNotesPage() {
-  const [allNotes, setAllNotes] = useState<Note[]>([]);
+  const [allNotes, setAllNotes] = useState<NoteWithRelations[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNotes, setSelectedNotes] = useState<number[]>([]);
   const { toast } = useToast();
@@ -66,7 +66,7 @@ export default function AdminNotesPage() {
     if (!lowercasedFilter) return allNotes;
     return allNotes.filter((note) =>
       note.topic_title.toLowerCase().includes(lowercasedFilter) ||
-      note.subject.toLowerCase().includes(lowercasedFilter) ||
+      note.subject_name.toLowerCase().includes(lowercasedFilter) ||
       note.chapter_name.toLowerCase().includes(lowercasedFilter)
     );
   }, [searchTerm, allNotes]);
@@ -236,7 +236,7 @@ export default function AdminNotesPage() {
                             <span className="text-xs text-muted-foreground">{note.chapter_name}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{note.subject}</TableCell>
+                      <TableCell>{note.subject_name}</TableCell>
                       <TableCell>
                          <Badge variant={note.is_published ? 'default' : 'outline'} className="capitalize text-xs transition-colors">
                               {note.is_published ? 'Published' : 'Draft'}

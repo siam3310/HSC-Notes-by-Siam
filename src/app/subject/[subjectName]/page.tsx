@@ -1,5 +1,5 @@
 import { getNotesBySubject } from '@/lib/data';
-import type { Note } from '@/lib/types';
+import type { NoteWithRelations } from '@/lib/types';
 import Link from 'next/link';
 import {
   Accordion,
@@ -8,6 +8,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { FileText, BookOpen } from 'lucide-react';
+import { notFound } from 'next/navigation';
 
 interface SubjectPageProps {
   params: {
@@ -17,7 +18,14 @@ interface SubjectPageProps {
 
 export default async function SubjectPage({ params }: SubjectPageProps) {
   const subjectName = decodeURIComponent(params.subjectName);
-  const notes = await getNotesBySubject(subjectName);
+  const notesResult = await getNotesBySubject(subjectName);
+
+  if (notesResult.error || !notesResult.notes) {
+      // Or handle error more gracefully
+      return notFound();
+  }
+  
+  const { notes } = notesResult;
 
   const notesByChapter = notes.reduce((acc, note) => {
     const chapter = note.chapter_name;
@@ -26,7 +34,7 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
     }
     acc[chapter].push(note);
     return acc;
-  }, {} as Record<string, Note[]>);
+  }, {} as Record<string, NoteWithRelations[]>);
 
   return (
     <div>

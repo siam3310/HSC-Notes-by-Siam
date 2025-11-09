@@ -34,17 +34,17 @@ export default async function NotePage({ params }: NotePageProps) {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <Link href={`/subject/${encodeURIComponent(note.subject)}`}>
+        <Link href={`/subject/${encodeURIComponent(note.subject_name)}`}>
           <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to {note.subject}
+            Back to {note.subject_name}
           </Button>
         </Link>
       </div>
       
       <article className="bg-card p-0 rounded-lg border">
         <header className="border-b p-6 sm:p-8">
-          <p className="text-sm text-muted-foreground tracking-wide uppercase">{note.subject} &gt; {note.chapter_name}</p>
+          <p className="text-sm text-muted-foreground tracking-wide uppercase">{note.subject_name} &gt; {note.chapter_name}</p>
           <h1 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">{note.topic_title}</h1>
         </header>
 
@@ -61,9 +61,10 @@ export default async function NotePage({ params }: NotePageProps) {
         {content && note.pdf_url && <Separator className="my-0" />}
 
         {content && (
-           <div className="p-6 sm:p-8">
-             <p className="whitespace-pre-wrap text-foreground/90">{content}</p>
-           </div>
+           <div
+              className="prose dark:prose-invert max-w-none p-6 sm:p-8"
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
         )}
 
         {!note.pdf_url && !content && (

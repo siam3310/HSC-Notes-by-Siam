@@ -1,11 +1,12 @@
 'use client';
 
-import { getNotesAction } from './actions';
-import { subjects, subjectChapters } from '@/lib/subjects';
+import { getNotesAction } from './notes/actions';
+import { getSubjectsAction } from './subjects/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookCopy, LayoutList, BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 interface Stats {
   noteCount: number;
@@ -20,15 +21,17 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     async function fetchStats() {
       setLoading(true);
-      const { notes } = await getNotesAction();
-      const subjectCount = subjects.length;
-      const chapterCount = Object.values(subjectChapters).flat().length;
+      
+      const { count: noteCount } = await supabaseAdmin.from('notes').select('*', { count: 'exact', head: true });
+      const { count: subjectCount } = await supabaseAdmin.from('subjects').select('*', { count: 'exact', head: true });
+      const { count: chapterCount } = await supabaseAdmin.from('chapters').select('*', { count: 'exact', head: true });
 
       setStats({
-        noteCount: notes.length,
-        subjectCount,
-        chapterCount,
+        noteCount: noteCount ?? 0,
+        subjectCount: subjectCount ?? 0,
+        chapterCount: chapterCount ?? 0,
       });
+
       setLoading(false);
     }
     fetchStats();
