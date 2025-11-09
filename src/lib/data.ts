@@ -1,7 +1,6 @@
 
 import { supabase } from './supabase';
-import { supabaseAdmin } from './supabaseAdmin';
-import type { NoteWithRelations, Subject, Chapter } from './types';
+import type { NoteWithRelations } from './types';
 
 // =================================================================
 // PUBLIC-FACING FUNCTIONS (using anon key)
@@ -87,26 +86,4 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
   };
 
   return transformedData as unknown as NoteWithRelations;
-}
-
-
-// =================================================================
-// GENERIC ADMIN-ONLY FUNCTIONS (using service_role key)
-// =================================================================
-
-export async function getSubjectsAndChapters(): Promise<{ subjects: Subject[], chapters: Chapter[] }> {
-    const [subjectsRes, chaptersRes] = await Promise.all([
-        supabaseAdmin.from('subjects').select('*').order('name'),
-        supabaseAdmin.from('chapters').select('*').order('name')
-    ]);
-
-    if (subjectsRes.error || chaptersRes.error) {
-        console.error('Error fetching subjects/chapters:', subjectsRes.error || chaptersRes.error);
-        return { subjects: [], chapters: [] };
-    }
-
-    return {
-        subjects: subjectsRes.data,
-        chapters: chaptersRes.data
-    };
 }

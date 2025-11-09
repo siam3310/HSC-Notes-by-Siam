@@ -6,6 +6,27 @@ import { z } from 'zod';
 import type { Subject, Chapter } from '@/lib/types';
 
 // ==================================
+// GENERIC DATA FETCHING
+// ==================================
+
+export async function getSubjectsAndChapters(): Promise<{ subjects: Subject[], chapters: Chapter[] }> {
+    const [subjectsRes, chaptersRes] = await Promise.all([
+        supabaseAdmin.from('subjects').select('*').order('name'),
+        supabaseAdmin.from('chapters').select('*').order('name')
+    ]);
+
+    if (subjectsRes.error || chaptersRes.error) {
+        console.error('Error fetching subjects/chapters:', subjectsRes.error || chaptersRes.error);
+        return { subjects: [], chapters: [] };
+    }
+
+    return {
+        subjects: subjectsRes.data,
+        chapters: chaptersRes.data
+    };
+}
+
+// ==================================
 // SUBJECT ACTIONS
 // ==================================
 

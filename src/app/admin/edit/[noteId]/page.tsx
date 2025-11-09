@@ -1,5 +1,5 @@
-import { getSubjectsAndChapters } from '@/lib/data';
 import { getNoteByIdAdmin } from '@/app/admin/notes/actions';
+import { getSubjectsAndChapters } from '@/app/admin/subjects/actions';
 import { NoteForm } from '@/components/NoteForm';
 import { notFound } from 'next/navigation';
 
