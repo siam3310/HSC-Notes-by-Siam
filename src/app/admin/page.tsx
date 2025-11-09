@@ -48,12 +48,15 @@ export default function AdminPage() {
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
+    // This effect runs only on the client, after the initial render.
+    // This prevents the hydration error.
     const sessionAuth = sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (sessionAuth === 'true') {
       setIsAuthenticated(true);
       fetchNotes();
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -87,6 +90,7 @@ export default function AdminPage() {
     setIsAuthenticated(false);
     setAllNotes([]);
     setFilteredNotes([]);
+    setLoading(false); // No longer loading data
   };
 
   const fetchNotes = async () => {
@@ -147,7 +151,8 @@ export default function AdminPage() {
     });
   };
   
-  if (loading && typeof window !== 'undefined' && !sessionStorage.getItem(SESSION_STORAGE_KEY)) {
+  if (loading) {
+    // This is the initial state for both server and client, preventing hydration mismatch.
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -231,14 +236,7 @@ export default function AdminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? (
-                    <TableRow>
-                        <TableCell colSpan={5} className="h-48 text-center">
-                            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                            <p className="mt-2 text-muted-foreground">Loading notes...</p>
-                        </TableCell>
-                    </TableRow>
-                ) : filteredNotes.length > 0 ? (
+                {filteredNotes.length > 0 ? (
                   filteredNotes.map((note) => (
                     <TableRow key={note.id} className="[&_td]:py-3">
                       <TableCell className="font-medium">
