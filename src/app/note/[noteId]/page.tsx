@@ -66,11 +66,12 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
   return (
     <div>
       <div className="mb-6">
-        <Link href={`/subject/${encodeURIComponent(note.subject_name)}`}>
-          <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+        <Link 
+            href={`/subject/${encodeURIComponent(note.subject_name)}`} 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to {note.subject_name}
-          </Button>
         </Link>
       </div>
       
