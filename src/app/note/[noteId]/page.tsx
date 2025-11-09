@@ -5,13 +5,6 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel"
 import { Card, CardContent } from '@/components/ui/card';
 import { PdfViewer } from '@/components/PdfViewer';
 
@@ -64,28 +57,20 @@ export default async function NotePage({ params }: NotePageProps) {
           {hasImages && (
             <div className="px-4 sm:px-8">
               <h2 className="text-2xl font-semibold mb-4">Images</h2>
-              <Carousel className="w-full max-w-full">
-                <CarouselContent>
-                  {images.map((image) => (
-                    <CarouselItem key={image.id}>
-                      <div className="p-1">
-                        <Card>
-                          <CardContent className="flex aspect-video items-center justify-center p-0 relative">
-                             <Image 
-                                src={image.image_url}
-                                alt={`Note image for ${note.topic_title}`}
-                                fill
-                                className="object-contain rounded-lg"
-                             />
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="ml-12" />
-                <CarouselNext className="mr-12" />
-              </Carousel>
+              <div className="space-y-4">
+                {images.map((image) => (
+                  <Card key={image.id}>
+                    <CardContent className="flex aspect-video items-center justify-center p-0 relative">
+                       <Image 
+                          src={image.image_url}
+                          alt={`Note image for ${note.topic_title}`}
+                          fill
+                          className="object-contain rounded-lg"
+                       />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
 
