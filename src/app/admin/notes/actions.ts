@@ -115,9 +115,6 @@ export async function createNoteAction(formData: Omit<z.infer<typeof noteSchema>
 export async function updateNoteAction(id: number, formData: Omit<z.infer<typeof noteSchema>, 'new_pdf_urls' | 'new_image_urls'> & {new_pdf_urls?: string[], new_image_urls?: string[], images_to_delete?: number[], pdfs_to_delete?: number[]}): Promise<{ success: boolean; error?: string }> {
      try {
         const validatedData = noteSchema.parse(formData);
-        const existingNote = await getNoteByIdAdmin(id);
-        if (!existingNote) throw new Error("Note not found.");
-
         const { images_to_delete = [], pdfs_to_delete = [] } = formData;
 
         // 1. Delete marked images and PDFs
@@ -136,16 +133,19 @@ export async function updateNoteAction(id: number, formData: Omit<z.infer<typeof
             const { error } = await supabaseAdmin.from('note_images').insert(imageInsertions);
             if (error) throw error;
         }
+        
         if (validatedData.new_pdf_urls && validatedData.new_pdf_urls.length > 0) {
-             // Delete existing PDFs if a new one is uploaded
-            const existingPdfs = existingNote.pdfs?.filter(p => !pdfs_to_delete.includes(p.id)) || [];
-            if (existingPdfs.length > 0) {
+             // Since we only allow one PDF, if a new one is uploaded, we'll remove all existing ones for this note.
+            const { data: existingPdfs, error: fetchError } = await supabaseAdmin.from('note_pdfs').select('id').eq('note_id', id);
+            if (fetchError) throw fetchError;
+            if (existingPdfs && existingPdfs.length > 0) {
                 const existingPdfIds = existingPdfs.map(p => p.id);
                 await supabaseAdmin.from('note_pdfs').delete().in('id', existingPdfIds);
             }
+
             const pdfInsertions = validatedData.new_pdf_urls.map(url => ({ note_id: id, pdf_url: url }));
-            const { error } = await supabaseAdmin.from('note_pdfs').insert(pdfInsertions);
-            if (error) throw error;
+            const { error: insertError } = await supabaseAdmin.from('note_pdfs').insert(pdfInsertions);
+            if (insertError) throw insertError;
         }
         
         // 3. Update note details
@@ -172,6 +172,7 @@ export async function updateNoteAction(id: number, formData: Omit<z.infer<typeof
         return { success: false, error: error.message || 'An unexpected error occurred.' };
     }
 }
+
 
 export async function deleteNoteAction(id: number): Promise<{ success: boolean; error?: string }> {
     const { error } = await supabaseAdmin
