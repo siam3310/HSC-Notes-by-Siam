@@ -6,5 +6,5 @@ compatibility_flags = ["nodejs_compat"]
 main = "./"
 
 [build]
-command = "npm run build"
+command = "npm run build:cf"
 build_output_dir = ".vercel/output/static"
