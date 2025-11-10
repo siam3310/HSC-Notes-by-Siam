@@ -26,7 +26,7 @@ import {
 import type { NoteWithRelations, Subject, Chapter } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { createNoteAction, updateNoteAction, uploadFileAction } from '@/app/admin/notes/actions';
+import { createNoteAction, updateNoteAction } from '@/app/admin/notes/actions';
 import { Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
@@ -35,6 +35,7 @@ import { Textarea } from './ui/textarea';
 import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUploadProgress } from './FileUploadProgress';
+import { supabase } from '@/lib/supabase';
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const ACCEPTED_PDF_TYPE = "application/pdf";
@@ -55,6 +56,7 @@ interface FileUpload {
     progress: number;
     url?: string;
     error?: string;
+    source?: AbortController;
 }
 
 interface NoteFormProps {
@@ -103,42 +105,51 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   const handleFileUpload = useCallback(async (file: File) => {
     const fileIsPdf = file.type === ACCEPTED_PDF_TYPE;
     const setter = fileIsPdf ? setPdfUploads : setImageUploads;
-    const newUpload: FileUpload = { id: uuidv4(), file, progress: 0 };
-    
-    // For PDFs, we only allow one. Replace any existing/failed one.
+    const abortController = new AbortController();
+    const newUpload: FileUpload = { id: uuidv4(), file, progress: 0, source: abortController };
+
     if (fileIsPdf) {
-        setPdfUploads([newUpload]);
+      setPdfUploads([newUpload]);
     } else {
-        setter(prev => [...prev, newUpload]);
+      setter(prev => [...prev, newUpload]);
     }
+    
+    // Simulate initial progress
+    setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 5 } : up));
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('fileType', file.type);
-
-    const progressInterval = setInterval(() => {
-        setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: Math.min(up.progress + 10, 90) } : up));
-    }, 200);
+    const folder = fileIsPdf ? 'pdfs' : 'images';
+    const fileName = `${Date.now()}-${file.name.replace(/\s/g, '-')}`;
+    const filePath = `${folder}/${fileName}`;
 
     try {
-        const result = await uploadFileAction(formData);
-        clearInterval(progressInterval);
+      const { data, error: uploadError } = await supabase.storage
+        .from('notes-pdfs')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          // No direct progress tracking in v2, faking it.
+        });
 
-        if (result.error || !result.url) {
-            throw new Error(result.error || 'Upload failed on server.');
-        }
-        
-        setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 100, url: result.url! } : up));
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('notes-pdfs').getPublicUrl(filePath);
+
+      if (!publicUrl) {
+        throw new Error('Could not get public URL for uploaded file.');
+      }
+      
+      setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 100, url: publicUrl } : up));
 
     } catch (error: any) {
-        clearInterval(progressInterval);
-        console.error('Upload Error:', error);
-        setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 0, error: error.message || 'An unexpected error occurred.' } : up));
-        toast({
-            variant: 'destructive',
-            title: `Upload Failed for ${file.name}`,
-            description: error.message,
-        });
+      console.error('Upload Error:', error);
+      setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 0, error: error.message || 'An unexpected error occurred.' } : up));
+      toast({
+        variant: 'destructive',
+        title: `Upload Failed for ${file.name}`,
+        description: error.message,
+      });
     }
   }, [toast]);
   
@@ -163,7 +174,13 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
   
   const removeUpload = (id: string, isPdf: boolean) => {
       const setter = isPdf ? setPdfUploads : setImageUploads;
-      setter(prev => prev.filter(up => up.id !== id));
+      setter(prev => {
+          const uploadToRemove = prev.find(up => up.id === id);
+          if (uploadToRemove && uploadToRemove.source) {
+              uploadToRemove.source.abort();
+          }
+          return prev.filter(up => up.id !== id);
+      });
   };
 
   const onSubmit = async (data: NoteFormValues) => {

@@ -20,50 +20,6 @@ const noteSchema = z.object({
 });
 
 
-export async function uploadFileAction(formData: FormData): Promise<{ url: string | null, error: string | null }> {
-    const file = formData.get('file') as File | null;
-    const fileType = formData.get('fileType') as string | null;
-
-    if (!file || !fileType) {
-        return { url: null, error: 'No file or file type provided.' };
-    }
-
-    const isImage = fileType.startsWith('image/');
-    const isPdf = fileType === 'application/pdf';
-
-    if (!isImage && !isPdf) {
-        return { url: null, error: 'Unsupported file type.' };
-    }
-    
-    const folder = isImage ? 'images' : 'pdfs';
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
-    const filePath = `${folder}/${fileName}`;
-
-    try {
-        const { data, error: uploadError } = await supabaseAdmin.storage
-            .from('notes-pdfs')
-            .upload(filePath, file);
-
-        if (uploadError) {
-            console.error('Supabase Upload Error:', uploadError);
-            throw new Error(uploadError.message);
-        }
-
-        const { data: { publicUrl } } = supabaseAdmin.storage.from('notes-pdfs').getPublicUrl(filePath);
-
-        if (!publicUrl) {
-            throw new Error('Could not get public URL for uploaded file.');
-        }
-        
-        return { url: publicUrl, error: null };
-
-    } catch (error: any) {
-        console.error('Upload Action Error:', error);
-        return { url: null, error: error.message || 'An unknown error occurred during file upload.' };
-    }
-}
-
-
 export async function createNoteAction(formData: Omit<z.infer<typeof noteSchema>, 'new_pdf_urls' | 'new_image_urls'> & {new_pdf_urls?: string[], new_image_urls?: string[]}): Promise<{ success: boolean; error?: string }> {
     try {
         const validatedData = noteSchema.parse(formData);
