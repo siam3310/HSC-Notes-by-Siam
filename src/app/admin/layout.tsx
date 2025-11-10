@@ -187,7 +187,7 @@ export default function AdminLayout({
         <header className="flex h-14 items-center justify-between border-b bg-card/50 px-4 md:hidden">
             <Link href="/" className="flex items-center gap-2 font-semibold">
                 <BookText className="h-6 w-6 text-primary"/>
-                <span className="">HSC Hand Notes</span>
+                <span className="">HSC Notes</span>
             </Link>
             <SidebarTrigger />
         </header>

@@ -26,7 +26,7 @@ export function Header() {
             className="flex items-center gap-2 text-lg font-bold text-foreground bg-secondary px-3 py-1 rounded-lg"
           >
             <BookText className="h-6 w-6 text-primary"/>
-            <h1>HSC Hand Notes</h1>
+            <h1>HSC Notes</h1>
           </Link>
 
           {/* Desktop Navigation */}

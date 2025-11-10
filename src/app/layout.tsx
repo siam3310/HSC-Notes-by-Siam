@@ -14,8 +14,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
-          <title>HSC Hand Notes by Siam</title>
-          <meta name="description" content="Digital handwritten study notes for HSC students." />
+          <title>HSC Notes</title>
+          <meta name="description" content="A comprehensive collection of study notes for HSC students." />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <AppLayout>

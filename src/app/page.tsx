@@ -9,10 +9,10 @@ export default function Home() {
         Your One-Stop Study Hub
       </div>
       <h1 className="text-4xl md:text-6xl font-bold tracking-tighter leading-tight mb-4 text-foreground">
-        Welcome to HSC Hand Notes
+        Welcome to HSC Notes
       </h1>
       <p className="max-w-2xl mx-auto text-lg text-muted-foreground">
-        Discover a comprehensive collection of handwritten notes by Siam, designed to help you excel in your HSC exams. All notes are organized by subject and chapter for your convenience.
+        Discover a comprehensive collection of notes designed to help you excel in your HSC exams. All notes are organized by subject and chapter for your convenience.
       </p>
       <Link href="/subjects">
         <Button size="lg" className="transition-transform duration-300 ease-in-out hover:scale-105">
