@@ -38,7 +38,7 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
 
   return (
     <div>
-      <h1 className="text-4xl font-bold mb-8 tracking-tight">{subjectName}</h1>
+      <h1 className="text-4xl font-bold mb-8 tracking-tight text-center">{subjectName}</h1>
       {Object.keys(notesByChapter).length > 0 ? (
       <Accordion type="single" collapsible className="w-full">
         {Object.entries(notesByChapter).map(([chapter, chapterNotes]) => (
