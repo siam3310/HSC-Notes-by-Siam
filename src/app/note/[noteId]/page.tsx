@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { getNoteById } from '@/lib/data';
@@ -129,14 +130,6 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
             </div>
           )}
 
-          {hasContent && (
-             <div className="px-6 sm:px-8">
-               <div className="prose dark:prose-invert max-w-none">
-                  <p className="whitespace-pre-wrap text-foreground/90">{content}</p>
-               </div>
-             </div>
-          )}
-
           {hasPdfs && pdfs[0] && (
             <div className="px-6 sm:px-8">
               <h2 className="text-2xl font-semibold mb-4">PDF Document</h2>
@@ -144,6 +137,14 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
                 <PdfViewer fileUrl={pdfs[0].pdf_url} />
               </div>
             </div>
+          )}
+
+          {hasContent && (
+             <div className="px-6 sm:px-8">
+               <div className="prose dark:prose-invert max-w-none">
+                  <p className="whitespace-pre-wrap text-foreground/90">{content}</p>
+               </div>
+             </div>
           )}
         </div>
 
