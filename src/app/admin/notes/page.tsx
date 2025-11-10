@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { deleteMultipleNotesAction, deleteNoteAction, getNotesAdmin } from './actions';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Loader } from '@/components/Loader';
 
 export default function AdminNotesPage() {
   const [allNotes, setAllNotes] = useState<NoteWithRelations[]>([]);
@@ -234,7 +235,7 @@ export default function AdminNotesPage() {
         <CardContent>
           {loading ? (
             <div className="flex justify-center items-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Loader />
             </div>
           ) : (
             <>

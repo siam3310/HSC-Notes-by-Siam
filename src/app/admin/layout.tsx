@@ -20,7 +20,6 @@ import {
   BookOpen,
   LogOut,
   BookText,
-  Loader2,
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -28,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Loader } from '@/components/Loader';
 
 const ADMIN_PASSCODE = 'siam3310';
 const SESSION_STORAGE_KEY = 'admin_authenticated';
@@ -94,7 +94,7 @@ export default function AdminLayout({
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader />
       </div>
     );
   }

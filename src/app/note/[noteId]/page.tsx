@@ -13,6 +13,7 @@ import { PdfViewer } from '@/components/PdfViewer';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { NoteWithRelations } from '@/lib/types';
 import { useEffect, useState } from 'react';
+import { Loader } from '@/components/Loader';
 
 interface NotePageProps {
   params: {
@@ -49,7 +50,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
   }, [params.noteId]);
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+    return <div className="flex justify-center items-center h-64"><Loader /></div>;
   }
   
   if (!note) {

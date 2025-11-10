@@ -36,6 +36,7 @@ import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUploadProgress } from './FileUploadProgress';
 import { supabase } from '@/lib/supabase';
+import { Loader } from './Loader';
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const ACCEPTED_PDF_TYPE = "application/pdf";
@@ -356,7 +357,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
             <div className="flex justify-end gap-2 sticky bottom-0 bg-background py-4 px-2 border-t">
                 <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting} className="w-32">
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isEditMode ? 'Update Note' : 'Create Note'}
+                    {isSubmitting ? <Loader /> : isEditMode ? 'Update Note' : 'Create Note'}
                 </Button>
             </div>
         </form>
@@ -364,5 +365,3 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
-
-    

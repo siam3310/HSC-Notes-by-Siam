@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookCopy, LayoutList, BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Loader } from '@/components/Loader';
 
 interface Stats {
   noteCount: number;

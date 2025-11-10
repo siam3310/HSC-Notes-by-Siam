@@ -20,6 +20,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { PlusCircle, Trash2, Edit, Save, X, Loader2, BookOpen, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Loader } from '@/components/Loader';
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -180,7 +181,7 @@ export default function SubjectsPage() {
   if (loading) {
     return (
       <div className="flex h-48 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader />
       </div>
     );
   }
@@ -297,7 +298,7 @@ export default function SubjectsPage() {
                                           )}
                                         </li>
                                     ))}
-                                    {!chapters[subject.id] && <div className="flex justify-center p-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
+                                    {!chapters[subject.id] && <div className="flex justify-center p-4"><Loader /></div>}
                                     {chapters[subject.id] && chapters[subject.id].length === 0 && (
                                         <li className="text-muted-foreground px-2 py-4 text-sm text-center">No chapters yet. Add one below.</li>
                                     )}
