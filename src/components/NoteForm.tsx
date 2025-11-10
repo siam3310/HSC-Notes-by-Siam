@@ -111,11 +111,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     const abortController = new AbortController();
     const newUpload: FileUpload = { id: uuidv4(), file, progress: 0, source: abortController };
 
-    if (fileIsPdf) {
-      setPdfUploads([newUpload]);
-    } else {
-      setter(prev => [...prev, newUpload]);
-    }
+    setter(prev => [...prev, newUpload]);
     
     // Simulate initial progress
     setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 5 } : up));
@@ -316,14 +312,16 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
 
                     <div className="space-y-4">
                         <FormLabel>{(isEditMode && (note?.pdfs?.length || 0 > 0 || note?.images?.length || 0 > 0)) ? "Manage Files" : "Upload Files (Optional)"}</FormLabel>
-                         {isEditMode && note?.pdfs?.filter(pdf => !pdfsToDelete.includes(pdf.id)).map(pdf => (
-                            <div key={pdf.id} className="relative group flex items-center gap-4 p-3 border rounded-md bg-secondary/50">
-                                 <a href={pdf.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{decodeURIComponent(pdf.pdf_url.split('/').pop()?.substring(14) ?? 'PDF Document')}</a>
-                                <Button type="button" variant="destructive" size="icon" className="h-7 w-7 opacity-80 group-hover:opacity-100" onClick={() => setPdfsToDelete(prev => [...prev, pdf.id])}>
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
-                            </div>
-                        ))}
+                        <div className="space-y-2">
+                            {isEditMode && note?.pdfs?.filter(pdf => !pdfsToDelete.includes(pdf.id)).map(pdf => (
+                                <div key={pdf.id} className="relative group flex items-center gap-4 p-3 border rounded-md bg-secondary/50">
+                                    <a href={pdf.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{decodeURIComponent(pdf.pdf_url.split('/').pop()?.substring(14) ?? 'PDF Document')}</a>
+                                    <Button type="button" variant="destructive" size="icon" className="h-7 w-7 opacity-80 group-hover:opacity-100" onClick={() => setPdfsToDelete(prev => [...prev, pdf.id])}>
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
                          {isEditMode && note?.images && note.images.length > 0 && (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                 {note.images.filter(img => !imagesToDelete.includes(img.id)).map(image => (
@@ -378,3 +376,5 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
+
+    

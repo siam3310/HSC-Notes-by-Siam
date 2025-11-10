@@ -92,14 +92,6 @@ export async function updateNoteAction(id: number, formData: Omit<z.infer<typeof
         }
         
         if (validatedData.new_pdf_urls && validatedData.new_pdf_urls.length > 0) {
-             // Since we only allow one PDF, if a new one is uploaded, we'll remove all existing ones for this note.
-            const { data: existingPdfs, error: fetchError } = await supabaseAdmin.from('note_pdfs').select('id').eq('note_id', id);
-            if (fetchError) throw fetchError;
-            if (existingPdfs && existingPdfs.length > 0) {
-                const existingPdfIds = existingPdfs.map(p => p.id);
-                await supabaseAdmin.from('note_pdfs').delete().in('id', existingPdfIds);
-            }
-
             const pdfInsertions = validatedData.new_pdf_urls.map(url => ({ note_id: id, pdf_url: url }));
             const { error: insertError } = await supabaseAdmin.from('note_pdfs').insert(pdfInsertions);
             if (insertError) throw insertError;
@@ -247,3 +239,5 @@ export async function updateNotePublishStatusAction(id: number, is_published: bo
     
     return { success: true };
 }
+
+    
