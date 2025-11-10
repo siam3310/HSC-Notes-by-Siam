@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Viewer, Worker } from '@react-pdf-viewer/core';
@@ -8,7 +9,9 @@ interface PdfViewerProps {
 }
 
 export function PdfViewer({ fileUrl }: PdfViewerProps) {
-  const defaultLayoutPluginInstance = defaultLayoutPlugin();
+  const defaultLayoutPluginInstance = defaultLayoutPlugin({
+    theme: 'dark'
+  });
 
   return (
     <Worker workerUrl={`https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`}>
