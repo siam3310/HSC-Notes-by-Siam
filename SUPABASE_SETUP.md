@@ -111,11 +111,11 @@ ON storage.objects FOR ALL
 TO service_role
 USING (bucket_id = 'notes-pdfs');
 
--- This policy allows any authenticated user to upload files.
+-- This policy allows any user (public/anon) to upload files.
 -- This is needed for the admin panel client-side uploads.
-CREATE POLICY "Allow authenticated users to upload"
+CREATE POLICY "Allow public uploads"
 ON storage.objects FOR INSERT
-TO authenticated
+TO anon, authenticated
 WITH CHECK (bucket_id = 'notes-pdfs');
 
 -- This policy allows any authenticated user to update their own files.
