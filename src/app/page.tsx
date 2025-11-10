@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react';
 
 export default function Home() {
   return (
-    <div className="text-center flex flex-col items-center justify-center pt-16 pb-24 space-y-6">
+    <div className="flex flex-col items-center justify-center text-center space-y-6 flex-grow">
       <div className="bg-secondary border border-border rounded-full px-4 py-1.5 text-sm text-foreground/80 font-medium">
         Your Central Notes Hub
       </div>
