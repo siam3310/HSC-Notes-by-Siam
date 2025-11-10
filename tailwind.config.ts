@@ -18,7 +18,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-inter)", ...fontFamily.sans],
+        sans: ["var(--font-pt-sans)", ...fontFamily.sans],
         mono: ['monospace'],
       },
       colors: {

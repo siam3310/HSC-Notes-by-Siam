@@ -11,7 +11,7 @@ export default function Home() {
         Welcome to HSC Notes
       </h1>
       <p className="max-w-2xl mx-auto text-lg text-muted-foreground">
-        Discover a comprehensive collection of notes designed to help you excel in your HSC exams. All notes are collected & organized by <span className="font-semibold text-foreground">Mahamudun Nabi Siam</span>.
+        Discover a comprehensive collection of notes designed to help you excel in your HSC exams. All notes are collected & organized by <span className="font-mono text-foreground">Mahamudun Nabi Siam</span>.
       </p>
       <Link href="/subjects">
         <Button size="lg" className="group rounded-full pl-4 pr-6 h-12 bg-foreground text-background hover:bg-foreground/80 transition-all duration-300 ease-in-out">

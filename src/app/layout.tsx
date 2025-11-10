@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { Inter } from 'next/font/google';
 import { AppLayout } from '@/components/AppLayout';
+import { PT_Sans } from 'next/font/google';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const ptSans = PT_Sans({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-pt-sans',
+});
 
 export default function RootLayout({
   children,
@@ -17,7 +21,7 @@ export default function RootLayout({
           <title>HSC Notes</title>
           <meta name="description" content="A comprehensive collection of study notes for HSC students." />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${ptSans.variable} font-sans antialiased`}>
         <AppLayout>
             {children}
         </AppLayout>
