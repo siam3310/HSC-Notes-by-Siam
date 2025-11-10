@@ -2,6 +2,11 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  experimental: {
+    serverActions: {
+      executionTimeout: 120, // 120 seconds
+    },
+  },
   serverActions: {
     bodySizeLimit: '30mb',
   },
