@@ -181,9 +181,13 @@ export async function getNotesAdmin(): Promise<{ notes: NoteWithRelations[]; err
     const { data, error } = await supabaseAdmin
         .from('notes')
         .select(`
-            *,
-            subjects (name),
-            chapters (name)
+            id,
+            topic_title,
+            is_published,
+            created_at,
+            display_order,
+            subjects ( name ),
+            chapters ( name )
         `)
         .order('created_at', { ascending: false });
 
@@ -224,4 +228,22 @@ export async function getNoteByIdAdmin(noteId: number): Promise<NoteWithRelation
   };
 
   return transformedData as unknown as NoteWithRelations;
+}
+
+export async function updateNotePublishStatusAction(id: number, is_published: boolean): Promise<{ success: boolean; error?: string }> {
+    const { error } = await supabaseAdmin
+        .from('notes')
+        .update({ is_published })
+        .eq('id', id);
+
+    if (error) {
+        console.error('Error updating note publish status:', error);
+        return { success: false, error: error.message };
+    }
+
+    revalidatePath('/admin/notes');
+    revalidatePath('/subjects', 'layout');
+    revalidatePath(`/note/${id}`);
+    
+    return { success: true };
 }

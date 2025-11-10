@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useTransition, useMemo } from 'react';
-import type { NoteWithRelations } from '@/lib/types';
+import type { NoteWithRelations, Subject } from '@/lib/types';
 import {
   Table,
   TableBody,
@@ -14,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -27,51 +28,106 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { PlusCircle, Edit, Trash2, Loader2, Search, MoreHorizontal, ArrowUpDown } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Search, MoreHorizontal, ArrowUpDown, Filter } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { deleteMultipleNotesAction, deleteNoteAction, getNotesAdmin } from './actions';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { deleteMultipleNotesAction, deleteNoteAction, getNotesAdmin, updateNotePublishStatusAction } from './actions';
+import { getSubjectsAction } from '../subjects/actions';
 import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Loader } from '@/components/Loader';
 
 export default function AdminNotesPage() {
   const [allNotes, setAllNotes] = useState<NoteWithRelations[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedNotes, setSelectedNotes] = useState<number[]>([]);
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchNotes();
+    fetchInitialData();
   }, []);
 
-  const fetchNotes = async () => {
+  const fetchInitialData = async () => {
     setLoading(true);
-    const result = await getNotesAdmin();
-    if(result.error) {
+    const [notesResult, subjectsResult] = await Promise.all([
+        getNotesAdmin(),
+        getSubjectsAction()
+    ]);
+
+    if(notesResult.error) {
         toast({
             variant: 'destructive',
             title: 'Failed to fetch notes',
-            description: result.error,
+            description: notesResult.error,
         });
         setAllNotes([]);
     } else {
-        setAllNotes(result.notes);
+        setAllNotes(notesResult.notes);
     }
+    
+    if(subjectsResult.error) {
+        toast({
+            variant: 'destructive',
+            title: 'Failed to fetch subjects',
+            description: subjectsResult.error,
+        });
+        setSubjects([]);
+    } else {
+        setSubjects(subjectsResult.subjects);
+    }
+
     setLoading(false);
   };
   
   const filteredNotes = useMemo(() => {
     const lowercasedFilter = searchTerm.toLowerCase();
-    if (!lowercasedFilter) return allNotes;
-    return allNotes.filter((note) =>
-      note.topic_title.toLowerCase().includes(lowercasedFilter) ||
-      (note.subject_name && note.subject_name.toLowerCase().includes(lowercasedFilter)) ||
-      (note.chapter_name && note.chapter_name.toLowerCase().includes(lowercasedFilter))
-    );
-  }, [searchTerm, allNotes]);
+    
+    return allNotes.filter((note) => {
+      const matchesSearch = !lowercasedFilter ||
+        note.topic_title.toLowerCase().includes(lowercasedFilter) ||
+        (note.subject_name && note.subject_name.toLowerCase().includes(lowercasedFilter)) ||
+        (note.chapter_name && note.chapter_name.toLowerCase().includes(lowercasedFilter));
+
+      const matchesSubject = selectedSubject === 'all' || note.subject_name === selectedSubject;
+      
+      return matchesSearch && matchesSubject;
+    });
+  }, [searchTerm, allNotes, selectedSubject]);
+
+  const handleTogglePublish = (noteId: number, currentStatus: boolean) => {
+    startTransition(async () => {
+        // Optimistically update UI
+        setAllNotes(prev => prev.map(note => note.id === noteId ? { ...note, is_published: !currentStatus } : note));
+
+        const result = await updateNotePublishStatusAction(noteId, !currentStatus);
+        
+        if (!result.success) {
+            // Revert optimistic update on failure
+            setAllNotes(prev => prev.map(note => note.id === noteId ? { ...note, is_published: currentStatus } : note));
+            toast({
+                variant: 'destructive',
+                title: 'Update Failed',
+                description: result.error || 'Could not update the note status.',
+            });
+        } else {
+             toast({
+                title: 'Note Updated',
+                description: `Note has been ${!currentStatus ? 'published' : 'unpublished'}.`,
+            });
+        }
+    });
+  };
 
   const handleDelete = (noteId: number) => {
     startTransition(async () => {
@@ -192,14 +248,28 @@ export default function AdminNotesPage() {
       <Card>
         <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Search notes by topic, subject..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-full"
-                    />
+                <div className="flex flex-1 flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                          placeholder="Search notes..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 w-full"
+                      />
+                  </div>
+                   <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                           <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                           <SelectValue placeholder="Filter by subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Subjects</SelectItem>
+                            {subjects.map(subject => (
+                                <SelectItem key={subject.id} value={subject.name}>{subject.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                 {numSelected > 0 && (
                      <AlertDialog>
@@ -260,10 +330,21 @@ export default function AdminNotesPage() {
                               <p className="text-sm text-muted-foreground">{note.subject_name}</p>
                               {note.chapter_name && <p className="text-sm text-muted-foreground">{note.chapter_name}</p>}
                           </CardHeader>
+                          <CardContent className="pt-2">
+                                <div className="flex items-center space-x-2">
+                                  <Switch
+                                    id={`publish-switch-mobile-${note.id}`}
+                                    checked={note.is_published}
+                                    onCheckedChange={() => handleTogglePublish(note.id, note.is_published)}
+                                    disabled={isPending}
+                                  />
+                                  <label htmlFor={`publish-switch-mobile-${note.id}`} className="text-sm font-medium text-muted-foreground">
+                                    {note.is_published ? 'Published' : 'Draft'}
+                                  </label>
+                                </div>
+                            </CardContent>
                           <CardFooter className="flex justify-between text-sm text-muted-foreground">
-                              <Badge variant={note.is_published ? 'default' : 'outline'} className="capitalize text-xs transition-colors">
-                                  {note.is_published ? 'Published' : 'Draft'}
-                              </Badge>
+                              <span className='font-mono text-xs'>Order: {note.display_order}</span>
                               <span>{format(new Date(note.created_at), 'dd MMM, yyyy')}</span>
                           </CardFooter>
                       </Card>
@@ -272,7 +353,7 @@ export default function AdminNotesPage() {
                     <div className="h-48 text-center flex flex-col justify-center items-center">
                       <h3 className="font-semibold">No notes found</h3>
                       <p className="text-muted-foreground mt-1 text-sm">
-                        {searchTerm ? 'Try adjusting your search terms.' : 'Click "Add New Note" to get started.'}
+                        {searchTerm || selectedSubject !== 'all' ? 'Try adjusting your search or filter.' : 'Click "Add New Note" to get started.'}
                       </p>
                     </div>
                  )}
@@ -294,7 +375,7 @@ export default function AdminNotesPage() {
                       </TableHead>
                       <TableHead className="min-w-[250px]">Topic</TableHead>
                       <TableHead className="min-w-[150px]">Subject</TableHead>
-                      <TableHead><div className='flex items-center'>Order <ArrowUpDown className="ml-2 h-4 w-4" /></div></TableHead>
+                      <TableHead><div className='flex items-center'>Order</div></TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created At</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -325,9 +406,18 @@ export default function AdminNotesPage() {
                           <TableCell>{note.subject_name}</TableCell>
                           <TableCell>{note.display_order}</TableCell>
                           <TableCell>
-                            <Badge variant={note.is_published ? 'default' : 'outline'} className="capitalize text-xs transition-colors">
-                                  {note.is_published ? 'Published' : 'Draft'}
-                            </Badge>
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                id={`publish-switch-desktop-${note.id}`}
+                                checked={note.is_published}
+                                onCheckedChange={() => handleTogglePublish(note.id, note.is_published)}
+                                disabled={isPending}
+                                aria-label={`Publish status for ${note.topic_title}`}
+                              />
+                               <label htmlFor={`publish-switch-desktop-${note.id}`} className="text-xs font-medium text-muted-foreground">
+                                    {note.is_published ? 'Published' : 'Draft'}
+                               </label>
+                            </div>
                           </TableCell>
                           <TableCell>
                             {format(new Date(note.created_at), 'dd MMM, yyyy')}
@@ -338,11 +428,11 @@ export default function AdminNotesPage() {
                         </TableRow>
                       ))
                     ) : (
-                      <TableRow>
+                       <TableRow>
                         <TableCell colSpan={7} className="h-48 text-center">
                           <h3 className="font-semibold">No notes found</h3>
-                          <p className="text-muted-foreground mt-1">
-                            {searchTerm ? 'Try adjusting your search terms.' : 'Click "Add New Note" to get started.'}
+                          <p className="text-muted-foreground mt-1 text-sm">
+                            {searchTerm || selectedSubject !== 'all' ? 'Try adjusting your search or filter.' : 'Click "Add New Note" to get started.'}
                           </p>
                         </TableCell>
                       </TableRow>

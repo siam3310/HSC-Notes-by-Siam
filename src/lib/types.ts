@@ -37,9 +37,11 @@ export interface Note {
 }
 
 // Used for displaying notes with their relations
-export interface NoteWithRelations extends Note {
+export interface NoteWithRelations extends Omit<Note, 'content' | 'subject_id' | 'chapter_id'>{
   subject_name: string;
   chapter_name: string | null;
   images?: NoteImage[];
   pdfs?: NotePdf[];
+  // content is optional because we don't always query for it
+  content?: string | null; 
 }
