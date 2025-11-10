@@ -36,13 +36,11 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
     return acc;
   }, {} as Record<string, NoteWithRelations[]>);
 
-  const defaultAccordionValue = Object.keys(notesByChapter).length > 0 ? Object.keys(notesByChapter)[0] : undefined;
-
   return (
     <div>
       <h1 className="text-4xl font-bold mb-8 tracking-tight">{subjectName}</h1>
       {Object.keys(notesByChapter).length > 0 ? (
-      <Accordion type="single" collapsible className="w-full" defaultValue={defaultAccordionValue}>
+      <Accordion type="single" collapsible className="w-full">
         {Object.entries(notesByChapter).map(([chapter, chapterNotes]) => (
           <AccordionItem value={chapter} key={chapter}>
             <AccordionTrigger className="text-xl font-semibold hover:no-underline py-4">
