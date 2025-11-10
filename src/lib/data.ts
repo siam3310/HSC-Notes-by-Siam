@@ -8,18 +8,17 @@ import type { NoteWithRelations } from './types';
 
 export async function getSubjects(): Promise<string[]> {
   const { data, error } = await supabase
-    .from('notes')
-    .select(`
-      subjects ( name )
-    `)
-    .eq('is_published', true);
+    .from('subjects')
+    .select('name, notes!inner(is_published)')
+    .eq('notes.is_published', true);
 
   if (error) {
     console.error('Error fetching active subjects:', error);
     return [];
   }
 
-  const subjectNames = [...new Set(data.map(item => item.subjects?.name).filter(Boolean) as string[])];
+  // Use a Set to ensure uniqueness and then convert to an array
+  const subjectNames = [...new Set(data.map(item => item.name))];
   
   subjectNames.sort();
 
