@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { PlusCircle, Edit, Trash2, Loader2, Search, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Search, MoreHorizontal, ArrowUpDown } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { deleteMultipleNotesAction, deleteNoteAction, getNotesAdmin } from './actions';
@@ -294,6 +294,7 @@ export default function AdminNotesPage() {
                       </TableHead>
                       <TableHead className="min-w-[250px]">Topic</TableHead>
                       <TableHead className="min-w-[150px]">Subject</TableHead>
+                      <TableHead><div className='flex items-center'>Order <ArrowUpDown className="ml-2 h-4 w-4" /></div></TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created At</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -322,6 +323,7 @@ export default function AdminNotesPage() {
                             </div>
                           </TableCell>
                           <TableCell>{note.subject_name}</TableCell>
+                          <TableCell>{note.display_order}</TableCell>
                           <TableCell>
                             <Badge variant={note.is_published ? 'default' : 'outline'} className="capitalize text-xs transition-colors">
                                   {note.is_published ? 'Published' : 'Draft'}
@@ -337,7 +339,7 @@ export default function AdminNotesPage() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-48 text-center">
+                        <TableCell colSpan={7} className="h-48 text-center">
                           <h3 className="font-semibold">No notes found</h3>
                           <p className="text-muted-foreground mt-1">
                             {searchTerm ? 'Try adjusting your search terms.' : 'Click "Add New Note" to get started.'}

@@ -37,6 +37,7 @@ export async function getNotesBySubject(subjectName: string): Promise<{ notes: N
     `)
     .eq('subjects.name', subjectName)
     .eq('is_published', true)
+    .order('display_order', { ascending: true })
     .order('created_at', { ascending: true });
 
   if (error) {

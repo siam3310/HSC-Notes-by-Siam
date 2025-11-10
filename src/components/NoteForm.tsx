@@ -46,6 +46,7 @@ const noteFormSchema = z.object({
   chapter_id: z.coerce.number().optional().nullable(),
   topic_title: z.string().min(3, { message: 'Topic title must be at least 3 characters.' }),
   content: z.string().optional(),
+  display_order: z.coerce.number().default(0),
   is_published: z.boolean(),
 });
 
@@ -84,6 +85,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         chapter_id: note?.chapter_id || null,
         topic_title: note?.topic_title || '',
         content: note?.content || '',
+        display_order: note?.display_order || 0,
         is_published: note?.is_published ?? false,
       },
   });
@@ -285,6 +287,17 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         <FormItem>
                             <FormLabel>Topic Title</FormLabel>
                             <FormControl><Input placeholder="e.g., Motion in a Straight Line" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control} name="display_order"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Display Order</FormLabel>
+                            <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+                            <FormDescription>Lower numbers appear first. Default is 0.</FormDescription>
                             <FormMessage />
                         </FormItem>
                         )}

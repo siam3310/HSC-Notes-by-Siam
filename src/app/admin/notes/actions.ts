@@ -14,6 +14,7 @@ const noteSchema = z.object({
   subject_id: z.coerce.number().positive("Please select a subject."),
   chapter_id: z.coerce.number().optional().nullable(),
   content: z.string().optional(),
+  display_order: z.coerce.number().default(0),
   is_published: z.boolean(),
   new_pdf_urls: z.array(z.string().url()).optional(),
   new_image_urls: z.array(z.string().url()).optional(),
@@ -29,6 +30,7 @@ export async function createNoteAction(formData: Omit<z.infer<typeof noteSchema>
             subject_id: validatedData.subject_id,
             chapter_id: validatedData.chapter_id || null,
             content: validatedData.content || '',
+            display_order: validatedData.display_order,
             is_published: validatedData.is_published,
         };
 
@@ -109,6 +111,7 @@ export async function updateNoteAction(id: number, formData: Omit<z.infer<typeof
             subject_id: validatedData.subject_id,
             chapter_id: validatedData.chapter_id || null,
             content: validatedData.content || '',
+            display_order: validatedData.display_order,
             is_published: validatedData.is_published
         };
 

@@ -42,10 +42,13 @@ CREATE TABLE public.notes (
   chapter_id BIGINT REFERENCES public.chapters(id) ON DELETE RESTRICT,
   topic_title TEXT NOT NULL,
   content TEXT,
+  display_order INT NOT NULL DEFAULT 0,
   is_published BOOLEAN DEFAULT TRUE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 COMMENT ON TABLE public.notes IS 'Stores all the handwritten study notes.';
+COMMENT ON COLUMN public.notes.display_order IS 'Controls the display order of notes. Lower numbers appear first.';
+
 
 -- 4. Create the 'note_images' table for the one-to-many relationship with notes.
 CREATE TABLE public.note_images (
@@ -172,7 +175,11 @@ ON CONFLICT (name) DO NOTHING;
 
 ## 5. Non-Destructive Schema Update 
 
-If you have existing data and want to update your schema to support both a PDF and multiple images without losing any data, **run the following safe script**. This is the recommended method.
+If you have existing data and want to update your schema, **run the following safe scripts**.
+
+### 5.1 Add PDF and Image Tables (if you haven't already)
+
+If you are on an older schema that only has a `pdf_url` column on the `notes` table, run this first.
 
 ```sql
 -- Step 1: Create the new 'note_pdfs' table if it doesn't exist.
@@ -227,4 +234,16 @@ ON public.note_pdfs FOR ALL TO service_role USING (true);
 
 -- Step 7: Enable Row Level Security on the new table if it's not already enabled.
 ALTER TABLE public.note_pdfs ENABLE ROW LEVEL SECURITY;
+```
+
+### 5.2 Add `display_order` column
+
+Run this script to add the ordering functionality.
+
+```sql
+-- Add display_order column to notes table if it doesn't exist
+ALTER TABLE public.notes
+ADD COLUMN IF NOT EXISTS display_order INT NOT NULL DEFAULT 0;
+
+COMMENT ON COLUMN public.notes.display_order IS 'Controls the display order of notes. Lower numbers appear first.';
 ```

@@ -33,6 +33,7 @@ export interface Note {
   content?: string | null;
   is_published: boolean;
   created_at: string;
+  display_order: number;
 }
 
 // Used for displaying notes with their relations
