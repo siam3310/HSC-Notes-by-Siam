@@ -5,10 +5,8 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       executionTimeout: 120, // 120 seconds
+      bodySizeLimit: '30mb',
     },
-  },
-  serverActions: {
-    bodySizeLimit: '30mb',
   },
   typescript: {
     ignoreBuildErrors: true,
@@ -43,6 +41,13 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       }
     ],
+  },
+  webpack: (config, { isServer }) => {
+    // Exclude canvas from being bundled on the server
+    if (isServer) {
+        config.externals.push('canvas');
+    }
+    return config
   },
 };
 

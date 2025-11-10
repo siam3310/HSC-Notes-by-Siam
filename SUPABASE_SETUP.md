@@ -142,7 +142,7 @@ You'll need your Supabase Project URL, the `anon` (public) key, and the `service
 3.  Under **Project API Keys**, you will find your `anon` key (labeled as `public`) and your `service_role` key.
 4.  You will also find your Project **URL** there.
 
-Create a `.env.local` file in the root of your project and add these credentials. **Keep your service_role key secret!**
+Create a `.env` file in the root of your project and add these credentials. **Keep your service_role key secret!** For production, you should set these as environment variables in your hosting provider's dashboard.
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=YOUR_PROJECT_URL

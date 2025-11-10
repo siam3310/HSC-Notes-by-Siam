@@ -1,0 +1,9 @@
+name = "hsc-notes-by-siam"
+compatibility_date = "2024-05-01"
+
+[pages]
+main = "./"
+
+[build]
+command = "npm run build"
+build_output_dir = ".vercel/output/static"
