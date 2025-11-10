@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <div className="text-center flex flex-col items-center justify-center pt-16 pb-24 space-y-6">
       <div className="bg-secondary border border-border rounded-full px-4 py-1.5 text-sm text-foreground/80 font-medium">
-        Your One-Stop Study Hub
+        Your Central Notes Hub
       </div>
       <h1 className="text-4xl md:text-6xl font-bold tracking-tighter leading-tight mb-4 text-foreground">
         Welcome to HSC Notes
