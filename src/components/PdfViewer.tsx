@@ -201,7 +201,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
       <div ref={containerRef} className="flex-grow">
         <div
             ref={parentRef}
-            className="h-full w-full overflow-y-auto"
+            className="h-[800px] w-full overflow-y-auto"
         >
              <Document
                 file={fileUrl}
