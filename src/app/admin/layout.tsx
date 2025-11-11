@@ -168,7 +168,7 @@ export default function AdminLayout({
             <SidebarMenuItem>
               <Link href="/admin/subjects" passHref>
                 <SidebarMenuButton
-                  isActive={pathname === '/admin/subjects'}
+                  isActive={pathname.startsWith('/admin/subjects')}
                   tooltip="Subjects"
                 >
                   <BookOpen />

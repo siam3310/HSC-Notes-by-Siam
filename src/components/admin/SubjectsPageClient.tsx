@@ -207,7 +207,7 @@ export default function SubjectsPageClient() {
                   disabled={isPending}
                   className="flex-grow"
                 />
-                <Button onClick={handleAddSubject} disabled={isPending} className="w-full sm:w-auto">
+                <Button onClick={handleAddSubject} disabled={isPending || !newSubjectName.trim()} className="w-full sm:w-auto">
                   {isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <PlusCircle className="h-4 w-4 sm:mr-2"/>}
                   <span className="sm:inline">Add Subject</span>
                 </Button>
@@ -218,6 +218,7 @@ export default function SubjectsPageClient() {
       <Card>
         <CardHeader>
             <CardTitle>Existing Subjects</CardTitle>
+            <CardDescription>Click on a subject to view and manage its chapters.</CardDescription>
         </CardHeader>
         <CardContent>
             {subjects.length > 0 ? (
@@ -242,7 +243,7 @@ export default function SubjectsPageClient() {
                                         <AlertDialogHeader>
                                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            This will delete the subject &quot;{subject.name}&quot; and ALL its chapters and notes. This action cannot be undone.
+                                            This will delete the subject &quot;{subject.name}&quot;. You can only delete a subject if no notes or chapters are associated with it.
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
@@ -285,7 +286,7 @@ export default function SubjectsPageClient() {
                                                           <AlertDialogContent>
                                                               <AlertDialogHeader>
                                                               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                              <AlertDialogDescription>This will permanently delete the chapter &quot;{chapter.name}&quot; and its associated notes.</AlertDialogDescription>
+                                                              <AlertDialogDescription>This will delete the chapter &quot;{chapter.name}&quot;. You can only delete a chapter if no notes are associated with it.</AlertDialogDescription>
                                                               </AlertDialogHeader>
                                                               <AlertDialogFooter>
                                                               <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -312,7 +313,7 @@ export default function SubjectsPageClient() {
                                         disabled={isPending}
                                         className="flex-grow"
                                     />
-                                    <Button onClick={() => handleAddChapter(subject.id)} variant="secondary" disabled={isPending} className="w-full sm:w-auto">
+                                    <Button onClick={() => handleAddChapter(subject.id)} variant="secondary" disabled={isPending || !(newChapterName[subject.id] || '').trim()} className="w-full sm:w-auto">
                                         <PlusCircle className="h-4 w-4 mr-2"/>Add Chapter
                                     </Button>
                                 </div>

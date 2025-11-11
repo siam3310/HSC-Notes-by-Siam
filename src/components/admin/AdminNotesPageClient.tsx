@@ -191,13 +191,13 @@ export default function AdminNotesPageClient() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
-                 <a href={`/note/${noteId}`} target="_blank" rel="noopener noreferrer" className="flex items-center w-full">
+                 <Link href={`/note/${noteId}`} target="_blank" rel="noopener noreferrer" className="flex items-center w-full cursor-pointer">
                     <Eye className="mr-2 h-4 w-4" />
                     View
-                </a>
+                </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-                <Link href={`/admin/edit/${noteId}`}>
+                <Link href={`/admin/edit/${noteId}`} className="cursor-pointer">
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                 </Link>
