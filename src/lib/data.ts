@@ -61,7 +61,8 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
       subjects (name),
       chapters (name),
       note_images (id, image_url),
-      note_pdfs (id, pdf_url)
+      note_pdfs (id, pdf_url),
+      note_embeds (id, embed_url)
     `)
     .eq('id', noteId)
     .single();
@@ -83,6 +84,7 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
     chapter_name: data.chapters?.name ?? null,
     images: data.note_images || [],
     pdfs: data.note_pdfs || [],
+    embeds: data.note_embeds || [],
   };
 
   return transformedData as unknown as NoteWithRelations;

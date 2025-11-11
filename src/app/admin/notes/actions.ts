@@ -6,9 +6,6 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import type { Note, NoteWithRelations } from '@/lib/types';
 import { z } from 'zod';
 
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-const ACCEPTED_PDF_TYPE = "application/pdf";
-
 const noteSchema = z.object({
   topic_title: z.string().min(3, "Topic title must be at least 3 characters long."),
   subject_id: z.coerce.number().positive("Please select a subject."),
@@ -18,10 +15,11 @@ const noteSchema = z.object({
   is_published: z.boolean(),
   new_pdf_urls: z.array(z.string().url()).optional(),
   new_image_urls: z.array(z.string().url()).optional(),
+  new_embed_urls: z.array(z.string().url()).optional(),
 });
 
 
-export async function createNoteAction(formData: Omit<z.infer<typeof noteSchema>, 'new_pdf_urls' | 'new_image_urls'> & {new_pdf_urls?: string[], new_image_urls?: string[]}): Promise<{ success: boolean; error?: string }> {
+export async function createNoteAction(formData: z.infer<typeof noteSchema>): Promise<{ success: boolean; error?: string }> {
     try {
         const validatedData = noteSchema.parse(formData);
 
@@ -58,6 +56,13 @@ export async function createNoteAction(formData: Omit<z.infer<typeof noteSchema>
             if (imageError) throw imageError;
         }
 
+        // Handle Embed URLs
+        if (validatedData.new_embed_urls && validatedData.new_embed_urls.length > 0) {
+            const embedInsertions = validatedData.new_embed_urls.map(url => ({ note_id: note.id, embed_url: url }));
+            const { error: embedError } = await supabaseAdmin.from('note_embeds').insert(embedInsertions);
+            if (embedError) throw embedError;
+        }
+
         revalidatePath('/admin/notes');
         revalidatePath('/admin');
         revalidatePath('/subjects', 'layout');
@@ -69,12 +74,12 @@ export async function createNoteAction(formData: Omit<z.infer<typeof noteSchema>
     }
 }
 
-export async function updateNoteAction(id: number, formData: Omit<z.infer<typeof noteSchema>, 'new_pdf_urls' | 'new_image_urls'> & {new_pdf_urls?: string[], new_image_urls?: string[], images_to_delete?: number[], pdfs_to_delete?: number[]}): Promise<{ success: boolean; error?: string }> {
+export async function updateNoteAction(id: number, formData: z.infer<typeof noteSchema> & {images_to_delete?: number[], pdfs_to_delete?: number[], embeds_to_delete?: number[]}): Promise<{ success: boolean; error?: string }> {
      try {
         const validatedData = noteSchema.parse(formData);
-        const { images_to_delete = [], pdfs_to_delete = [] } = formData;
+        const { images_to_delete = [], pdfs_to_delete = [], embeds_to_delete = [] } = formData;
 
-        // 1. Delete marked images and PDFs
+        // 1. Delete marked items
         if (images_to_delete.length > 0) {
             const { error } = await supabaseAdmin.from('note_images').delete().in('id', images_to_delete);
             if (error) throw error;
@@ -83,17 +88,25 @@ export async function updateNoteAction(id: number, formData: Omit<z.infer<typeof
             const { error } = await supabaseAdmin.from('note_pdfs').delete().in('id', pdfs_to_delete);
             if (error) throw error;
         }
+        if (embeds_to_delete.length > 0) {
+            const { error } = await supabaseAdmin.from('note_embeds').delete().in('id', embeds_to_delete);
+            if (error) throw error;
+        }
 
-        // 2. Add new images and PDFs
+        // 2. Add new items
         if (validatedData.new_image_urls && validatedData.new_image_urls.length > 0) {
             const imageInsertions = validatedData.new_image_urls.map(url => ({ note_id: id, image_url: url }));
             const { error } = await supabaseAdmin.from('note_images').insert(imageInsertions);
             if (error) throw error;
         }
-        
         if (validatedData.new_pdf_urls && validatedData.new_pdf_urls.length > 0) {
             const pdfInsertions = validatedData.new_pdf_urls.map(url => ({ note_id: id, pdf_url: url }));
             const { error: insertError } = await supabaseAdmin.from('note_pdfs').insert(pdfInsertions);
+            if (insertError) throw insertError;
+        }
+        if (validatedData.new_embed_urls && validatedData.new_embed_urls.length > 0) {
+            const embedInsertions = validatedData.new_embed_urls.map(url => ({ note_id: id, embed_url: url }));
+            const { error: insertError } = await supabaseAdmin.from('note_embeds').insert(embedInsertions);
             if (insertError) throw insertError;
         }
         
@@ -145,18 +158,7 @@ export async function deleteMultipleNotesAction(ids: number[]): Promise<{ succes
         return { success: false, error: 'No note IDs provided.' };
     }
 
-    const { error: imageDeleteError } = await supabaseAdmin.from('note_images').delete().in('note_id', ids);
-    if (imageDeleteError) {
-        console.error('Error deleting associated images for multiple notes:', imageDeleteError);
-        // non-critical, continue
-    }
-
-    const { error: pdfDeleteError } = await supabaseAdmin.from('note_pdfs').delete().in('note_id', ids);
-    if (pdfDeleteError) {
-        console.error('Error deleting associated pdfs for multiple notes:', pdfDeleteError);
-        // non-critical, continue
-    }
-
+    // Cascading deletes are set up in Supabase, so we only need to delete from 'notes'
     const { error } = await supabaseAdmin.from('notes').delete().in('id', ids);
     if (error) {
         console.error('Error deleting multiple notes:', error);
@@ -204,7 +206,8 @@ export async function getNoteByIdAdmin(noteId: number): Promise<NoteWithRelation
     .select(`
         *,
         note_images(id, image_url),
-        note_pdfs(id, pdf_url)
+        note_pdfs(id, pdf_url),
+        note_embeds(id, embed_url)
     `)
     .eq('id', noteId)
     .single();
@@ -217,6 +220,7 @@ export async function getNoteByIdAdmin(noteId: number): Promise<NoteWithRelation
     ...data,
     images: data.note_images || [],
     pdfs: data.note_pdfs || [],
+    embeds: data.note_embeds || [],
   };
 
   return transformedData as unknown as NoteWithRelations;

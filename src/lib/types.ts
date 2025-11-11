@@ -1,3 +1,4 @@
+
 export interface Subject {
   id: number;
   name: string;
@@ -25,6 +26,13 @@ export interface NotePdf {
   created_at: string;
 }
 
+export interface NoteEmbed {
+  id: number;
+  note_id: number;
+  embed_url: string;
+  created_at: string;
+}
+
 export interface Note {
   id: number;
   subject_id: number;
@@ -42,6 +50,6 @@ export interface NoteWithRelations extends Omit<Note, 'subject_id' | 'chapter_id
   chapter_name: string | null;
   images?: NoteImage[];
   pdfs?: NotePdf[];
-  // content is optional because we don't always query for it
+  embeds?: NoteEmbed[];
   content?: string | null; 
 }

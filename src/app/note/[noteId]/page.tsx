@@ -73,27 +73,27 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
   const content = note.content || '';
   const images = note.images || [];
   const pdfs = note.pdfs || [];
+  const embeds = note.embeds || [];
 
   const hasContent = !!content;
   const hasImages = images.length > 0;
   const hasPdfs = pdfs.length > 0;
+  const hasEmbeds = embeds.length > 0;
   
-  const isGoogleDriveLink = (url: string) => {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.hostname === 'drive.google.com';
-    } catch (e) {
-      return false;
-    }
-  }
-
   const getGoogleDriveEmbedUrl = (url: string) => {
-    const regex = /\/folders\/([a-zA-Z0-9_-]+)/;
-    const match = url.match(regex);
-    if (match && match[1]) {
-      return `https://drive.google.com/embeddedfolderview?id=${match[1]}#grid`;
+    const folderRegex = /\/folders\/([a-zA-Z0-9_-]+)/;
+    const folderMatch = url.match(folderRegex);
+    if (folderMatch && folderMatch[1]) {
+      return `https://drive.google.com/embeddedfolderview?id=${folderMatch[1]}#grid`;
     }
-    return null; // or return original url to show it's not a valid folder link
+    
+    const fileRegex = /\/file\/d\/([a-zA-Z0-9_-]+)/;
+    const fileMatch = url.match(fileRegex);
+    if (fileMatch && fileMatch[1]) {
+        return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
+    }
+
+    return url; // Return original url if not a recognized Google Drive link
   };
 
   return (
@@ -110,10 +110,10 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
           <h1 className="text-3xl md:text-4xl mt-2 tracking-tight">{note.topic_title}</h1>
         </header>
 
-        <div className="space-y-8 py-8">
+        <div className="space-y-12 py-8">
           {hasImages && (
             <div className="px-4 sm:px-8">
-              <h2 className="text-2xl mb-4">Images</h2>
+              <h2 className="text-2xl mb-4 font-semibold">Images</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {images.map((image) => (
                     <Dialog key={image.id}>
@@ -164,39 +164,48 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
 
           {hasPdfs && (
             <div className="px-6 sm:px-8">
-              <h2 className="text-2xl mb-4">
+              <h2 className="text-2xl mb-4 font-semibold">
                 {pdfs.length > 1 ? 'Documents' : 'Document'}
               </h2>
                <div className="space-y-8">
-                {pdfs.map((pdf) => {
-                  if (isGoogleDriveLink(pdf.pdf_url)) {
-                    const embedUrl = getGoogleDriveEmbedUrl(pdf.pdf_url);
-                    if (embedUrl) {
-                      return (
-                        <div key={pdf.id} className="overflow-hidden rounded-lg border aspect-video">
+                {pdfs.map((pdf) => (
+                    <div key={pdf.id} className="overflow-hidden rounded-lg border">
+                      <PdfViewer fileUrl={pdf.pdf_url} />
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          )}
+
+          {hasEmbeds && (
+            <div className="px-6 sm:px-8">
+                <h2 className="text-2xl mb-4 font-semibold">
+                    {embeds.length > 1 ? 'Embedded Files' : 'Embedded File'}
+                </h2>
+                <div className="space-y-8">
+                {embeds.map((embed) => {
+                    const embedUrl = getGoogleDriveEmbedUrl(embed.embed_url);
+                    return (
+                        <div key={embed.id} className="overflow-hidden rounded-lg border aspect-video">
                            <iframe
                             src={embedUrl}
                             width="100%"
                             height="100%"
                             allow="autoplay"
                             className='border-0'
-                          ></iframe>
+                            ></iframe>
                         </div>
-                      )
-                    }
-                  }
-                  return (
-                    <div key={pdf.id} className="overflow-hidden rounded-lg border">
-                      <PdfViewer fileUrl={pdf.pdf_url} />
-                    </div>
-                  )
+                    )
                 })}
-              </div>
+                </div>
             </div>
           )}
 
+
           {hasContent && (
              <div className="px-6 sm:px-8">
+                <h2 className="text-2xl mb-4 font-semibold">Additional Content</h2>
                <div className="prose dark:prose-invert max-w-none">
                   <p className="whitespace-pre-wrap text-foreground/90">{content}</p>
                </div>
@@ -204,7 +213,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
           )}
         </div>
 
-        {!hasImages && !hasPdfs && !hasContent && (
+        {!hasImages && !hasPdfs && !hasEmbeds && !hasContent && (
             <p className="text-muted-foreground text-center py-20">No content available for this note.</p>
         )}
       </article>
