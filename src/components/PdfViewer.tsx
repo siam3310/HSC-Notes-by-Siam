@@ -1,14 +1,7 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
-import 'pdfjs-dist/web/pdf_viewer.css';
-import {
-  PDFViewer,
-  EventBus,
-  PDFFindController,
-  PDFLinkService,
-} from 'pdfjs-dist/web/pdf_viewer.mjs';
+import { useEffect, useRef, useState } from 'react';
 
 // Setting worker path
 import * as pdfjsLib from 'pdfjs-dist';
@@ -23,59 +16,92 @@ interface PdfViewerProps {
 export function PdfViewer({ fileUrl }: PdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
-  const eventBusRef = useRef<EventBus | null>(null);
+  const [isViewerLoaded, setIsViewerLoaded] = useState(false);
 
   useEffect(() => {
-    if (!containerRef.current || !viewerRef.current) {
-      return;
+    // --- Start: Dynamic Asset Loading ---
+    const cssUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css';
+    const jsUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.js';
+    
+    let cssLink = document.querySelector(`link[href="${cssUrl}"]`) as HTMLLinkElement;
+    if (!cssLink) {
+        cssLink = document.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = cssUrl;
+        document.head.appendChild(cssLink);
     }
+    
+    const initializeViewer = () => {
+      if (!containerRef.current || !viewerRef.current || !fileUrl || typeof window.pdfjsViewer === 'undefined') {
+          return;
+      }
 
-    if (!eventBusRef.current) {
-      eventBusRef.current = new EventBus();
-    }
-    const eventBus = eventBusRef.current;
+      const { PDFViewer, EventBus, PDFFindController, PDFLinkService } = window.pdfjsViewer;
 
-    const linkService = new PDFLinkService({
-      eventBus: eventBus,
-    });
+      const eventBus = new EventBus();
+      const linkService = new PDFLinkService({ eventBus });
+      const findController = new PDFFindController({ eventBus, linkService });
 
-    const findController = new PDFFindController({
-      eventBus: eventBus,
-      linkService: linkService,
-    });
-
-    const pdfViewer = new PDFViewer({
-      container: containerRef.current,
-      viewer: viewerRef.current,
-      eventBus: eventBus,
-      linkService: linkService,
-      findController: findController,
-      textLayerMode: 1, // Enable text selection
-      annotationLayerMode: 1, // Enable annotations
-    });
-
-    linkService.setViewer(pdfViewer);
-
-    const loadingTask = pdfjsLib.getDocument(fileUrl);
-    loadingTask.promise
-      .then(function (pdfDocument) {
-        pdfViewer.setDocument(pdfDocument);
-        linkService.setDocument(pdfDocument, null);
-      })
-      .catch(function (reason) {
-        console.error('Error during PDF loading: ' + reason);
+      const pdfViewer = new PDFViewer({
+        container: containerRef.current,
+        viewer: viewerRef.current,
+        eventBus,
+        linkService,
+        findController,
+        textLayerMode: 1, 
+        annotationLayerMode: 2,
+        renderer: 'canvas',
+        useOnlyCssZoom: false,
       });
 
-    return () => {
-      loadingTask.destroy();
-      // Clean up viewer
-      const pdfViewerDiv = viewerRef.current;
-      if (pdfViewerDiv) {
-        while (pdfViewerDiv.firstChild) {
-          pdfViewerDiv.removeChild(pdfViewerDiv.firstChild);
+      linkService.setViewer(pdfViewer);
+
+      const loadingTask = pdfjsLib.getDocument(fileUrl);
+      loadingTask.promise
+        .then((pdfDocument) => {
+          pdfViewer.setDocument(pdfDocument);
+          linkService.setDocument(pdfDocument, null);
+        })
+        .catch((reason) => {
+          console.error('Error during PDF loading: ' + reason);
+        });
+
+      return () => {
+        loadingTask.destroy();
+        pdfViewer.setDocument(null);
+        const pdfViewerDiv = viewerRef.current;
+        if (pdfViewerDiv) {
+            while (pdfViewerDiv.firstChild) {
+                pdfViewerDiv.removeChild(pdfViewerDiv.firstChild);
+            }
         }
-      }
-    };
+      };
+    }
+
+    if (window.pdfjsViewer) {
+      initializeViewer();
+      setIsViewerLoaded(true);
+    } else {
+        let script = document.querySelector(`script[src="${jsUrl}"]`) as HTMLScriptElement;
+        if (!script) {
+            script = document.createElement('script');
+            script.src = jsUrl;
+            script.onload = () => {
+              initializeViewer();
+              setIsViewerLoaded(true);
+            };
+            document.body.appendChild(script);
+        } else if (script.dataset.loaded) {
+           initializeViewer();
+           setIsViewerLoaded(true);
+        } else {
+           script.addEventListener('load', () => {
+             initializeViewer();
+             setIsViewerLoaded(true);
+           });
+        }
+    }
+
   }, [fileUrl]);
 
   return (
@@ -85,7 +111,7 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
       className="pdf-viewer-container"
       style={{ position: 'relative', height: '800px', overflow: 'auto', border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))' }}
     >
-        <div id="viewer" ref={viewerRef} className="pdfViewer"></div>
+      <div id="viewer" ref={viewerRef} className="pdfViewer"></div>
     </div>
   );
 }
