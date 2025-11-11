@@ -18,7 +18,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-pt-sans)", ...fontFamily.sans],
+        sans: ["var(--font-sans)", ...fontFamily.sans],
+        title: ["var(--font-title)", ...fontFamily.sans],
         mono: ['monospace'],
       },
       colors: {
