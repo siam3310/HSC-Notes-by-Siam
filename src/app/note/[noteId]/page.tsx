@@ -131,11 +131,17 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
             </div>
           )}
 
-          {hasPdfs && pdfs[0] && (
+          {hasPdfs && (
             <div className="px-6 sm:px-8">
-              <h2 className="text-2xl font-semibold mb-4">PDF Document</h2>
-              <div className="h-[800px] w-full rounded-lg border overflow-hidden">
-                <PdfViewer fileUrl={pdfs[0].pdf_url} />
+              <h2 className="text-2xl font-semibold mb-4">
+                {pdfs.length > 1 ? 'PDF Documents' : 'PDF Document'}
+              </h2>
+              <div className="space-y-8">
+                {pdfs.map((pdf) => (
+                  <div key={pdf.id} className="h-[800px] w-full rounded-lg border overflow-hidden">
+                    <PdfViewer fileUrl={pdf.pdf_url} />
+                  </div>
+                ))}
               </div>
             </div>
           )}
