@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Loader as SpinnerLoader } from '@/components/Loader';
 
 // Setting worker path
 import * as pdfjsLib from 'pdfjs-dist';
