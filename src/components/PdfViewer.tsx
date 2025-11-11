@@ -24,6 +24,7 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   const [isViewerLoaded, setIsViewerLoaded] = useState(false);
+  const [isCssLoaded, setIsCssLoaded] = useState(false);
 
   useEffect(() => {
     const cssUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css';
@@ -34,7 +35,11 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
         cssLink = document.createElement('link');
         cssLink.rel = 'stylesheet';
         cssLink.href = cssUrl;
+        cssLink.onload = () => setIsCssLoaded(true);
         document.head.appendChild(cssLink);
+    } else {
+        // If CSS is already in the DOM, assume it's loaded.
+        setIsCssLoaded(true);
     }
     
     if (window.pdfjsViewer) {
@@ -47,22 +52,22 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
         script = document.createElement('script');
         script.src = jsUrl;
         script.async = true;
+        script.onload = () => setIsViewerLoaded(true);
         document.body.appendChild(script);
-    }
-
-    const onLoad = () => {
-       setIsViewerLoaded(true);
-    }
-
-    script.addEventListener('load', onLoad);
-   
-    return () => {
-      script.removeEventListener('load', onLoad);
+    } else if (script.dataset.loaded) {
+        setIsViewerLoaded(true);
+    } else {
+        const onLoad = () => {
+           setIsViewerLoaded(true);
+           script.dataset.loaded = 'true';
+           script.removeEventListener('load', onLoad);
+        }
+        script.addEventListener('load', onLoad);
     }
   }, []);
 
   useEffect(() => {
-    if (!isViewerLoaded || !fileUrl || !containerRef.current || !viewerRef.current) {
+    if (!isViewerLoaded || !isCssLoaded || !fileUrl || !containerRef.current || !viewerRef.current) {
         return;
     }
 
@@ -109,14 +114,13 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
           }
       }
     };
-  }, [fileUrl, isViewerLoaded]);
+  }, [fileUrl, isViewerLoaded, isCssLoaded]);
 
   return (
     <div
       ref={containerRef}
-      id="viewerContainer"
       className="pdf-viewer-container"
-      style={{ height: '800px', overflow: 'auto', border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))' }}
+      style={{ height: '800px', overflow: 'auto', border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))', position: 'relative' }}
     >
       <div id="viewer" ref={viewerRef} className="pdfViewer"></div>
     </div>
