@@ -1,3 +1,4 @@
+
 'use client';
 
 import { getDashboardStats } from './actions';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookCopy, LayoutList, BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader } from '@/components/Loader';
+import Link from 'next/link';
 
 interface Stats {
   noteCount: number;
@@ -32,6 +33,27 @@ export default function AdminDashboardPage() {
     fetchStats();
   }, []);
 
+  const DashboardCard = ({ href, title, value, icon, description, isLoading }: { href: string, title: string, value?: number, icon: React.ReactNode, description: string, isLoading: boolean }) => (
+    <Link href={href}>
+      <Card className="hover:border-primary/80 hover:bg-secondary/50 transition-all">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          {icon}
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-8 w-1/4" />
+          ) : (
+            <div className="text-2xl font-bold">{value}</div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {description}
+          </p>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+
   return (
     <div className="w-full space-y-6">
       <header>
@@ -41,56 +63,30 @@ export default function AdminDashboardPage() {
         </p>
       </header>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Notes</CardTitle>
-            <BookCopy className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-1/4" />
-            ) : (
-              <div className="text-2xl font-bold">{stats?.noteCount}</div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Total number of notes created.
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Subjects
-            </CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-             {loading ? (
-              <Skeleton className="h-8 w-1/4" />
-            ) : (
-              <div className="text-2xl font-bold">{stats?.subjectCount}</div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Number of subjects available.
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Chapters</CardTitle>
-            <LayoutList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-             {loading ? (
-              <Skeleton className="h-8 w-1/4" />
-            ) : (
-              <div className="text-2xl font-bold">{stats?.chapterCount}</div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Total chapters across all subjects.
-            </p>
-          </CardContent>
-        </Card>
+        <DashboardCard 
+            href="/admin/notes"
+            title="Total Notes"
+            value={stats?.noteCount}
+            icon={<BookCopy className="h-4 w-4 text-muted-foreground" />}
+            description="Total number of notes created."
+            isLoading={loading}
+        />
+        <DashboardCard 
+            href="/admin/subjects"
+            title="Total Subjects"
+            value={stats?.subjectCount}
+            icon={<BookOpen className="h-4 w-4 text-muted-foreground" />}
+            description="Number of subjects available."
+            isLoading={loading}
+        />
+        <DashboardCard 
+            href="/admin/subjects"
+            title="Total Chapters"
+            value={stats?.chapterCount}
+            icon={<LayoutList className="h-4 w-4 text-muted-foreground" />}
+            description="Total chapters across all subjects."
+            isLoading={loading}
+        />
       </div>
        <Card>
         <CardHeader>
