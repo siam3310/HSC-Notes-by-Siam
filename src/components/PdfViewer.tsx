@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { useInView, InView } from 'react-intersection-observer';
+import { useInView } from 'react-intersection-observer';
 
 import { Loader as SpinnerLoader } from '@/components/Loader';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,6 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import useResizeObserver from 'use-resize-observer';
 import { Skeleton } from './ui/skeleton';
 import { Dialog, DialogContent, DialogTrigger, DialogClose } from './ui/dialog';
-import { cn } from '@/lib/utils';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -43,31 +42,6 @@ const PageSkeleton = ({ height }: { height: number }) => (
         <Skeleton style={{ height: `${height}px`, width: '100%' }} />
     </div>
 );
-
-const PageRenderer = ({ pageIndex, width, scale, onPageVisible }: { pageIndex: number; width: number; scale: number; onPageVisible: (page: number, inView: boolean) => void; }) => {
-    return (
-        <InView
-            as="div"
-            threshold={0.5}
-            onChange={(inView, entry) => {
-                if (inView) {
-                    onPageVisible(pageIndex + 1, true);
-                }
-            }}
-        >
-            <Page
-                key={`page_${pageIndex + 1}`}
-                pageNumber={pageIndex + 1}
-                width={width ? width * 0.95 : undefined}
-                scale={scale}
-                loading={<PageSkeleton height={width * 1.41 * scale} />}
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-                className="shadow-lg"
-            />
-        </InView>
-    );
-};
 
 export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   const [numPages, setNumPages] = useState<number>(0);
@@ -98,10 +72,6 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
 
   const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 2.5));
   const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
-  const goToPage = (pageIndex: number) => {
-      const clampedIndex = Math.max(0, Math.min(pageIndex, numPages - 1));
-      rowVirtualizer.scrollToIndex(clampedIndex, { align: 'start' });
-  };
   
   const handleOpenSlideshow = () => {
     setSlideshowPage(currentPage);
@@ -120,13 +90,13 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
       {/* Toolbar */}
       <div className="sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 border-b bg-card p-2">
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => goToPage(currentPage - 2)} disabled={currentPage <= 1}>
+            <Button variant="outline" size="icon" onClick={() => rowVirtualizer.scrollToIndex(currentPage - 2)} disabled={currentPage <= 1}>
                 <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm font-medium text-muted-foreground w-24 text-center">
                 Page {currentPage} of {numPages || '...'}
             </span>
-            <Button variant="outline" size="icon" onClick={() => goToPage(currentPage)} disabled={!numPages || currentPage >= numPages}>
+            <Button variant="outline" size="icon" onClick={() => rowVirtualizer.scrollToIndex(currentPage)} disabled={!numPages || currentPage >= numPages}>
                 <ChevronRight className="h-4 w-4" />
             </Button>
         </div>
@@ -171,14 +141,16 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                         </Button>
                         
                         <div className="w-full h-full flex items-center justify-center p-8">
-                             <Page 
-                                pageNumber={slideshowPage} 
-                                className="shadow-2xl"
-                                loading={<SpinnerLoader />}
-                                renderTextLayer={false}
-                                renderAnnotationLayer={false}
-                                devicePixelRatio={window.devicePixelRatio || 1}
-                             />
+                            <Document file={fileUrl} loading="" error="">
+                                <Page 
+                                    pageNumber={slideshowPage} 
+                                    className="shadow-2xl"
+                                    loading={<SpinnerLoader />}
+                                    renderTextLayer={false}
+                                    renderAnnotationLayer={false}
+                                    devicePixelRatio={window.devicePixelRatio || 1}
+                                />
+                            </Document>
                         </div>
                         
                         <Button 
@@ -234,12 +206,26 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                         }}
                         className="flex justify-center p-2"
                     >
-                       <PageRenderer
-                          pageIndex={virtualItem.index}
-                          width={width}
-                          scale={scale}
-                          onPageVisible={handlePageVisible}
-                       />
+                       <InView
+                            as="div"
+                            threshold={0.5}
+                            onChange={(inView) => {
+                                if (inView) {
+                                    handlePageVisible(virtualItem.index + 1, true);
+                                }
+                            }}
+                        >
+                            <Page
+                                key={`page_${virtualItem.index + 1}`}
+                                pageNumber={virtualItem.index + 1}
+                                width={width ? width * 0.95 : undefined}
+                                scale={scale}
+                                loading={<PageSkeleton height={width * 1.41 * scale} />}
+                                renderTextLayer={false}
+                                renderAnnotationLayer={false}
+                                className="shadow-lg"
+                            />
+                        </InView>
                     </div>
                 ))}
             </div>
