@@ -27,7 +27,7 @@ import type { NoteWithRelations, Subject, Chapter } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { createNoteAction, updateNoteAction } from '@/app/admin/notes/actions';
-import { Loader2, ArrowLeft, Trash2, PlusCircle, Link as LinkIcon } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, PlusCircle, Link as LinkIcon, X } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
