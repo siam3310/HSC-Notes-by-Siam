@@ -6,14 +6,13 @@ import { getNoteById } from '@/lib/data';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Download, X, Loader } from 'lucide-react';
+import { Download, X } from 'lucide-react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { NoteWithRelations } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Loader as SpinnerLoader } from '@/components/Loader';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const PdfViewer = dynamic(() => import('@/components/PdfViewer').then(mod => mod.PdfViewer), {
   ssr: false,

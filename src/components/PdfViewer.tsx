@@ -15,7 +15,7 @@ import { AlertCircle } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import useResizeObserver from 'use-resize-observer';
 import { Skeleton } from './ui/skeleton';
-import { Dialog, DialogContent, DialogTrigger, DialogClose } from './ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogTitle, DialogDescription } from './ui/dialog';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -122,6 +122,9 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                     className="w-screen h-screen max-w-full p-0 bg-black/90 backdrop-blur-sm border-0 shadow-none flex flex-col items-center justify-center"
                     onKeyDown={handleKeyDown}
                 >
+                    <DialogTitle className="sr-only">PDF Slideshow</DialogTitle>
+                    <DialogDescription className="sr-only">A full-screen view of the PDF document. Use arrow keys to navigate between pages.</DialogDescription>
+
                      <DialogClose asChild className="absolute top-4 right-4 z-50">
                         <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/50 hover:bg-black/70 text-white hover:text-white">
                             <X className="h-8 w-8" />
