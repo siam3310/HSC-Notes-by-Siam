@@ -39,6 +39,10 @@ const nextConfig: NextConfig = {
         hostname: 'auirtluswvdhcpmkcdoo.supabase.co',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
       }
     ],
   },

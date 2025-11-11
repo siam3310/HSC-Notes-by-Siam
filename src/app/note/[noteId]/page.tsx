@@ -77,6 +77,24 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
   const hasContent = !!content;
   const hasImages = images.length > 0;
   const hasPdfs = pdfs.length > 0;
+  
+  const isGoogleDriveLink = (url: string) => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname === 'drive.google.com';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  const getGoogleDriveEmbedUrl = (url: string) => {
+    const regex = /\/folders\/([a-zA-Z0-9_-]+)/;
+    const match = url.match(regex);
+    if (match && match[1]) {
+      return `https://drive.google.com/embeddedfolderview?id=${match[1]}#grid`;
+    }
+    return null; // or return original url to show it's not a valid folder link
+  };
 
   return (
     <div className="flex flex-col">
@@ -147,14 +165,32 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
           {hasPdfs && (
             <div className="px-6 sm:px-8">
               <h2 className="text-2xl mb-4">
-                {pdfs.length > 1 ? 'PDF Documents' : 'PDF Document'}
+                {pdfs.length > 1 ? 'Documents' : 'Document'}
               </h2>
                <div className="space-y-8">
-                {pdfs.map((pdf) => (
-                  <div key={pdf.id} className="overflow-hidden rounded-lg border">
-                     <PdfViewer fileUrl={pdf.pdf_url} />
-                  </div>
-                ))}
+                {pdfs.map((pdf) => {
+                  if (isGoogleDriveLink(pdf.pdf_url)) {
+                    const embedUrl = getGoogleDriveEmbedUrl(pdf.pdf_url);
+                    if (embedUrl) {
+                      return (
+                        <div key={pdf.id} className="overflow-hidden rounded-lg border aspect-video">
+                           <iframe
+                            src={embedUrl}
+                            width="100%"
+                            height="100%"
+                            allow="autoplay"
+                            className='border-0'
+                          ></iframe>
+                        </div>
+                      )
+                    }
+                  }
+                  return (
+                    <div key={pdf.id} className="overflow-hidden rounded-lg border">
+                      <PdfViewer fileUrl={pdf.pdf_url} />
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
