@@ -12,11 +12,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 // Configure the PDF.js worker.
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = `/static/pdf.worker.min.js`;
 
-interface PdfViewerProps {
-  fileUrl: string;
-}
 
 const loadingSpinner = (
     <div className="flex flex-col items-center justify-center h-full">
@@ -36,7 +33,7 @@ const errorComponent = (error?: Error) => (
     </Alert>
 );
 
-export function PdfViewer({ fileUrl }: PdfViewerProps) {
+export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);

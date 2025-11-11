@@ -1,4 +1,6 @@
 import type {NextConfig} from 'next';
+const CopyPlugin = require('copy-webpack-plugin');
+const path = require('path');
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -47,6 +49,19 @@ const nextConfig: NextConfig = {
     if (isServer) {
         config.externals.push('canvas');
     }
+    
+    // Copy the pdf.js worker to the public directory
+    config.plugins.push(
+      new CopyPlugin({
+        patterns: [
+          {
+            from: path.join(__dirname, 'node_modules/pdfjs-dist/build/pdf.worker.min.js'),
+            to: path.join(__dirname, 'public/static'),
+          },
+        ],
+      })
+    );
+
     return config
   },
 };
