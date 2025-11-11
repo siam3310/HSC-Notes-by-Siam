@@ -239,5 +239,3 @@ export async function updateNotePublishStatusAction(id: number, is_published: bo
     
     return { success: true };
 }
-
-    

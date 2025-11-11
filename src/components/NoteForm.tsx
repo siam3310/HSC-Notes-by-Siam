@@ -27,7 +27,7 @@ import type { NoteWithRelations, Subject, Chapter } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { createNoteAction, updateNoteAction } from '@/app/admin/notes/actions';
-import { Loader2, ArrowLeft, Trash2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Trash2, PlusCircle, Link as LinkIcon } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
@@ -61,6 +61,11 @@ interface FileUpload {
     source?: AbortController;
 }
 
+interface PdfUrl {
+    id: string;
+    url: string;
+}
+
 interface NoteFormProps {
   note?: NoteWithRelations | null;
   subjects: Subject[];
@@ -74,6 +79,8 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
 
   const [pdfUploads, setPdfUploads] = useState<FileUpload[]>([]);
   const [imageUploads, setImageUploads] = useState<FileUpload[]>([]);
+  const [pdfUrls, setPdfUrls] = useState<PdfUrl[]>([]);
+  const [pdfUrlInput, setPdfUrlInput] = useState('');
 
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
   const [pdfsToDelete, setPdfsToDelete] = useState<number[]>([]);
@@ -113,7 +120,6 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
 
     setter(prev => [...prev, newUpload]);
     
-    // Simulate initial progress
     setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 5 } : up));
 
     const folder = fileIsPdf ? 'pdfs' : 'images';
@@ -126,7 +132,6 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
-          // No direct progress tracking in v2, faking it.
         });
 
       if (uploadError) {
@@ -170,6 +175,20 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
       
       e.target.value = ''; 
   };
+
+  const handleAddPdfUrl = () => {
+    try {
+      const parsedUrl = z.string().url().parse(pdfUrlInput);
+      if (pdfUrls.some(p => p.url === parsedUrl)) {
+        toast({ variant: 'destructive', title: 'URL already exists' });
+        return;
+      }
+      setPdfUrls(prev => [...prev, { id: uuidv4(), url: parsedUrl }]);
+      setPdfUrlInput('');
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Invalid URL', description: 'Please enter a valid PDF URL.' });
+    }
+  };
   
   const removeUpload = (id: string, isPdf: boolean) => {
       const setter = isPdf ? setPdfUploads : setImageUploads;
@@ -182,6 +201,11 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
       });
   };
 
+  const removePdfUrl = (id: string) => {
+    setPdfUrls(prev => prev.filter(p => p.id !== id));
+  };
+
+
   const onSubmit = async (data: NoteFormValues) => {
     const allUploads = [...pdfUploads, ...imageUploads];
     const isUploading = allUploads.some(up => up.progress > 0 && up.progress < 100);
@@ -191,13 +215,13 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
         return;
     }
 
-    const new_pdf_urls = pdfUploads.map(f => f.url).filter((url): url is string => !!url);
-    const new_image_urls = imageUploads.map(f => f.url).filter((url): url is string => !!url);
+    const uploadedPdfUrls = pdfUploads.map(f => f.url).filter((url): url is string => !!url);
+    const directPdfUrls = pdfUrls.map(p => p.url);
 
     const payload:any = {
         ...data,
-        new_pdf_urls,
-        new_image_urls,
+        new_pdf_urls: [...uploadedPdfUrls, ...directPdfUrls],
+        new_image_urls: imageUploads.map(f => f.url).filter((url): url is string => !!url),
     };
     
     if (isEditMode) {
@@ -311,13 +335,14 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                     />
 
                     <div className="space-y-4">
-                        <FormLabel>{(isEditMode && (note?.pdfs?.length || 0 > 0 || note?.images?.length || 0 > 0)) ? "Manage Files" : "Upload Files (Optional)"}</FormLabel>
+                        <FormLabel>{(isEditMode && (note?.pdfs?.length || 0 > 0 || note?.images?.length || 0 > 0)) ? "Manage Files" : "Add Files (Optional)"}</FormLabel>
                         <div className="space-y-2">
                             {isEditMode && note?.pdfs?.filter(pdf => !pdfsToDelete.includes(pdf.id)).map(pdf => (
                                 <div key={pdf.id} className="relative group flex items-center gap-4 p-3 border rounded-md bg-secondary/50">
-                                    <a href={pdf.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{decodeURIComponent(pdf.pdf_url.split('/').pop()?.substring(14) ?? 'PDF Document')}</a>
-                                    <Button type="button" variant="destructive" size="icon" className="h-7 w-7 opacity-80 group-hover:opacity-100" onClick={() => setPdfsToDelete(prev => [...prev, pdf.id])}>
-                                        <Trash2 className="h-4 w-4"/>
+                                    <LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                    <a href={pdf.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{pdf.pdf_url}</a>
+                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 opacity-50 group-hover:opacity-100" onClick={() => setPdfsToDelete(prev => [...prev, pdf.id])}>
+                                        <Trash2 className="h-4 w-4 text-destructive"/>
                                     </Button>
                                 </div>
                             ))}
@@ -336,19 +361,49 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                                 ))}
                             </div>
                         )}
-                        <FormControl>
-                            <Input
-                                type="file"
-                                accept={`${ACCEPTED_PDF_TYPE},${ACCEPTED_IMAGE_TYPES.join(',')}`}
-                                multiple
-                                onChange={handleFileSelection}
-                                disabled={isSubmitting}
-                                className="h-auto p-2"
-                            />
-                        </FormControl>
-                        {pdfUploads.map(upload => <FileUploadProgress key={upload.id} upload={upload} onRemove={() => removeUpload(upload.id, true)}/>)}
-                        {imageUploads.map(upload => <FileUploadProgress key={upload.id} upload={upload} onRemove={() => removeUpload(upload.id, false)}/>)}
-                        <FormDescription>Upload PDF or image files. Upload will start immediately.</FormDescription>
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Add new files</p>
+                            {/* PDF URL Input */}
+                            <div className="flex gap-2">
+                                <Input
+                                    type="url"
+                                    placeholder="Paste a PDF URL here"
+                                    value={pdfUrlInput}
+                                    onChange={(e) => setPdfUrlInput(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddPdfUrl(); }}}
+                                    disabled={isSubmitting}
+                                />
+                                <Button type="button" variant="outline" onClick={handleAddPdfUrl} disabled={isSubmitting || !pdfUrlInput}>
+                                    <PlusCircle className="h-4 w-4 mr-2" /> Add URL
+                                </Button>
+                            </div>
+                            {/* File Upload Input */}
+                            <FormControl>
+                                <Input
+                                    type="file"
+                                    accept={`${ACCEPTED_PDF_TYPE},${ACCEPTED_IMAGE_TYPES.join(',')}`}
+                                    multiple
+                                    onChange={handleFileSelection}
+                                    disabled={isSubmitting}
+                                    className="h-auto p-2"
+                                />
+                            </FormControl>
+                        </div>
+                        {/* Lists of new files */}
+                        <div className="space-y-2">
+                            {pdfUrls.map(p => (
+                                <div key={p.id} className="relative group flex items-center gap-4 p-3 border rounded-md bg-secondary/50">
+                                    <LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                    <span className="text-sm font-medium flex-grow truncate">{p.url}</span>
+                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removePdfUrl(p.id)}>
+                                        <X className="h-4 w-4"/>
+                                    </Button>
+                                </div>
+                            ))}
+                            {pdfUploads.map(upload => <FileUploadProgress key={upload.id} upload={upload} onRemove={() => removeUpload(upload.id, true)}/>)}
+                            {imageUploads.map(upload => <FileUploadProgress key={upload.id} upload={upload} onRemove={() => removeUpload(upload.id, false)}/>)}
+                        </div>
+                        <FormDescription>Upload PDF/image files or add PDF URLs. Uploads will start immediately.</FormDescription>
                     </div>
 
                     <FormField
@@ -376,5 +431,3 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     </div>
   );
 }
-
-    

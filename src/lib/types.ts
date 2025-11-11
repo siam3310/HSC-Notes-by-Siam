@@ -30,14 +30,14 @@ export interface Note {
   subject_id: number;
   chapter_id: number | null;
   topic_title: string;
-  content?: string | null;
+  content: string | null;
   is_published: boolean;
   created_at: string;
   display_order: number;
 }
 
 // Used for displaying notes with their relations
-export interface NoteWithRelations extends Omit<Note, 'content' | 'subject_id' | 'chapter_id'>{
+export interface NoteWithRelations extends Omit<Note, 'subject_id' | 'chapter_id'>{
   subject_name: string;
   chapter_name: string | null;
   images?: NoteImage[];
