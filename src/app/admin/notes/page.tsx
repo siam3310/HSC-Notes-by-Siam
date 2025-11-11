@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { PlusCircle, Edit, Trash2, Loader2, Search, MoreHorizontal, ArrowUpDown, Filter } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Search, MoreHorizontal, ArrowUpDown, Filter, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import {
@@ -190,6 +190,12 @@ export default function AdminNotesPage() {
             </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+                 <a href={`/note/${noteId}`} target="_blank" rel="noopener noreferrer" className="flex items-center w-full">
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
+                </a>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
                 <Link href={`/admin/edit/${noteId}`}>
                     <Edit className="mr-2 h-4 w-4" />
