@@ -25,7 +25,6 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
   const [isViewerLoaded, setIsViewerLoaded] = useState(false);
 
   useEffect(() => {
-    // --- Start: Dynamic Asset Loading ---
     const cssUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css';
     const jsUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.js';
     
@@ -37,18 +36,42 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
         document.head.appendChild(cssLink);
     }
     
-    const initializeViewer = () => {
-      if (!containerRef.current || !viewerRef.current || !fileUrl || typeof window.pdfjsViewer === 'undefined') {
-          return;
-      }
+    if (window.pdfjsViewer) {
+      setIsViewerLoaded(true);
+      return;
+    }
+    
+    let script = document.querySelector(`script[src="${jsUrl}"]`) as HTMLScriptElement;
+    if (!script) {
+        script = document.createElement('script');
+        script.src = jsUrl;
+        script.async = true;
+        document.body.appendChild(script);
+    }
 
-      const { PDFViewer, EventBus, PDFFindController, PDFLinkService } = window.pdfjsViewer;
+    const onLoad = () => {
+       setIsViewerLoaded(true);
+    }
 
-      const eventBus = new EventBus();
-      const linkService = new PDFLinkService({ eventBus });
-      const findController = new PDFFindController({ eventBus, linkService });
+    script.addEventListener('load', onLoad);
+   
+    return () => {
+      script.removeEventListener('load', onLoad);
+    }
+  }, []);
 
-      const pdfViewer = new PDFViewer({
+  useEffect(() => {
+    if (!isViewerLoaded || !fileUrl || !containerRef.current || !viewerRef.current) {
+        return;
+    }
+
+    const { PDFViewer, EventBus, PDFFindController, PDFLinkService } = window.pdfjsViewer;
+
+    const eventBus = new EventBus();
+    const linkService = new PDFLinkService({ eventBus });
+    const findController = new PDFFindController({ eventBus, linkService });
+
+    const pdfViewer = new PDFViewer({
         container: containerRef.current,
         viewer: viewerRef.current,
         eventBus,
@@ -58,65 +81,34 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
         annotationLayerMode: 2,
         renderer: 'canvas',
         useOnlyCssZoom: false,
+    });
+
+    linkService.setViewer(pdfViewer);
+
+    const loadingTask = pdfjsLib.getDocument(fileUrl);
+    loadingTask.promise
+      .then((pdfDocument) => {
+        pdfViewer.setDocument(pdfDocument);
+        linkService.setDocument(pdfDocument, null);
+      })
+      .catch((reason) => {
+        console.error('Error during PDF loading: ' + reason);
       });
 
-      linkService.setViewer(pdfViewer);
-
-      const loadingTask = pdfjsLib.getDocument(fileUrl);
-      loadingTask.promise
-        .then((pdfDocument) => {
-          pdfViewer.setDocument(pdfDocument);
-          linkService.setDocument(pdfDocument, null);
-        })
-        .catch((reason) => {
-          console.error('Error during PDF loading: ' + reason);
-        });
-
-      return () => {
-        loadingTask.destroy();
-        pdfViewer.setDocument(null);
-        const pdfViewerDiv = viewerRef.current;
-        if (pdfViewerDiv) {
-            while (pdfViewerDiv.firstChild) {
-                pdfViewerDiv.removeChild(pdfViewerDiv.firstChild);
-            }
-        }
-      };
-    }
-
-    if (window.pdfjsViewer) {
-      const cleanup = initializeViewer();
-      setIsViewerLoaded(true);
-      return cleanup;
-    } else {
-        let script = document.querySelector(`script[src="${jsUrl}"]`) as HTMLScriptElement;
-        const existingScript = !!script;
-
-        if (!script) {
-            script = document.createElement('script');
-            script.src = jsUrl;
-            script.async = true;
-            document.body.appendChild(script);
-        }
-        
-        let cleanup: (() => void) | undefined;
-
-        const onLoad = () => {
-           cleanup = initializeViewer();
-           setIsViewerLoaded(true);
-        }
-
-        script.addEventListener('load', onLoad);
-       
-        return () => {
-          script.removeEventListener('load', onLoad);
-          if (cleanup) {
-            cleanup();
+    return () => {
+      loadingTask.destroy();
+      // Ensure pdfViewer is cleaned up properly
+      if (pdfViewer) {
+          pdfViewer.setDocument(null);
+      }
+      const pdfViewerDiv = viewerRef.current;
+      if (pdfViewerDiv) {
+          while (pdfViewerDiv.firstChild) {
+              pdfViewerDiv.removeChild(pdfViewerDiv.firstChild);
           }
-        }
-    }
-
-  }, [fileUrl]);
+      }
+    };
+  }, [fileUrl, isViewerLoaded]);
 
   return (
     <div
