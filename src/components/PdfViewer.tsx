@@ -25,13 +25,13 @@ const loadingSpinner = (
     </div>
 );
 
-const errorComponent = (error: Error) => (
+const errorComponent = (error?: Error) => (
     <Alert variant="destructive" className="m-4">
       <AlertCircle className="h-4 w-4" />
       <AlertTitle>Error Loading PDF</AlertTitle>
       <AlertDescription>
         There was a problem loading the PDF file. Please try again later.
-        <p className="text-xs mt-2 font-mono">{error.message}</p>
+        {error?.message && <p className="text-xs mt-2 font-mono">{error.message}</p>}
       </AlertDescription>
     </Alert>
 );
