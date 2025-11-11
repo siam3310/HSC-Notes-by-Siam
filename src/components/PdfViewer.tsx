@@ -13,6 +13,12 @@ interface PdfViewerProps {
   fileUrl: string;
 }
 
+declare global {
+  interface Window {
+    pdfjsViewer: any;
+  }
+}
+
 export function PdfViewer({ fileUrl }: PdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -79,26 +85,34 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
     }
 
     if (window.pdfjsViewer) {
-      initializeViewer();
+      const cleanup = initializeViewer();
       setIsViewerLoaded(true);
+      return cleanup;
     } else {
         let script = document.querySelector(`script[src="${jsUrl}"]`) as HTMLScriptElement;
+        const existingScript = !!script;
+
         if (!script) {
             script = document.createElement('script');
             script.src = jsUrl;
-            script.onload = () => {
-              initializeViewer();
-              setIsViewerLoaded(true);
-            };
+            script.async = true;
             document.body.appendChild(script);
-        } else if (script.dataset.loaded) {
-           initializeViewer();
+        }
+        
+        let cleanup: (() => void) | undefined;
+
+        const onLoad = () => {
+           cleanup = initializeViewer();
            setIsViewerLoaded(true);
-        } else {
-           script.addEventListener('load', () => {
-             initializeViewer();
-             setIsViewerLoaded(true);
-           });
+        }
+
+        script.addEventListener('load', onLoad);
+       
+        return () => {
+          script.removeEventListener('load', onLoad);
+          if (cleanup) {
+            cleanup();
+          }
         }
     }
 
