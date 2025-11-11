@@ -1,20 +1,22 @@
 
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { useInView } from 'react-intersection-observer';
+import { useInView, InView } from 'react-intersection-observer';
 
 import { Loader as SpinnerLoader } from '@/components/Loader';
 import { Button } from '@/components/ui/button';
-import { ZoomIn, ZoomOut, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ZoomIn, ZoomOut, Download, ChevronLeft, ChevronRight, Expand, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import useResizeObserver from 'use-resize-observer';
 import { Skeleton } from './ui/skeleton';
+import { Dialog, DialogContent, DialogTrigger, DialogClose } from './ui/dialog';
+import { cn } from '@/lib/utils';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -42,19 +44,17 @@ const PageSkeleton = ({ height }: { height: number }) => (
     </div>
 );
 
-
-const PageRenderer = ({ pageIndex, width, scale, onPageVisible }: { pageIndex: number; width: number; scale: number; onPageVisible: (page: number) => void; }) => {
-    const { ref, inView } = useInView({
-        threshold: 0.5, // Trigger when 50% of the page is visible
-        onChange: (inView, entry) => {
-            if (inView) {
-                onPageVisible(pageIndex + 1);
-            }
-        },
-    });
-
+const PageRenderer = ({ pageIndex, width, scale, onPageVisible }: { pageIndex: number; width: number; scale: number; onPageVisible: (page: number, inView: boolean) => void; }) => {
     return (
-        <div ref={ref}>
+        <InView
+            as="div"
+            threshold={0.5}
+            onChange={(inView, entry) => {
+                if (inView) {
+                    onPageVisible(pageIndex + 1, true);
+                }
+            }}
+        >
             <Page
                 key={`page_${pageIndex + 1}`}
                 pageNumber={pageIndex + 1}
@@ -65,15 +65,15 @@ const PageRenderer = ({ pageIndex, width, scale, onPageVisible }: { pageIndex: n
                 renderAnnotationLayer={false}
                 className="shadow-lg"
             />
-        </div>
+        </InView>
     );
 };
-
 
 export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   const [numPages, setNumPages] = useState<number>(0);
   const [scale, setScale] = useState(1.0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [slideshowPage, setSlideshowPage] = useState(1);
 
   const { ref: containerRef, width = 1 } = useResizeObserver<HTMLDivElement>();
   
@@ -90,13 +90,30 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
     setNumPages(numPages);
   };
   
-  const handlePageVisible = (page: number) => {
-    setCurrentPage(page);
+  const handlePageVisible = (page: number, inView: boolean) => {
+    if (inView) {
+      setCurrentPage(page);
+    }
   };
 
   const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 2.5));
   const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
-  const goToPage = (pageIndex: number) => rowVirtualizer.scrollToIndex(pageIndex, { align: 'start' });
+  const goToPage = (pageIndex: number) => {
+      const clampedIndex = Math.max(0, Math.min(pageIndex, numPages - 1));
+      rowVirtualizer.scrollToIndex(clampedIndex, { align: 'start' });
+  };
+  
+  const handleOpenSlideshow = () => {
+    setSlideshowPage(currentPage);
+  }
+
+  const goToPrevSlide = () => setSlideshowPage(p => Math.max(1, p - 1));
+  const goToNextSlide = () => setSlideshowPage(p => Math.min(numPages, p + 1));
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowRight') goToNextSlide();
+    if (e.key === 'ArrowLeft') goToPrevSlide();
+  };
 
   return (
     <div className="flex h-full w-full flex-col rounded-lg border bg-secondary/30">
@@ -124,7 +141,63 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                 <ZoomIn className="h-4 w-4" />
             </Button>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="icon" disabled={!numPages} onClick={handleOpenSlideshow}>
+                        <Expand className="h-4 w-4" />
+                    </Button>
+                </DialogTrigger>
+                <DialogContent 
+                    className="w-screen h-screen max-w-full p-0 bg-black/90 backdrop-blur-sm border-0 shadow-none flex flex-col items-center justify-center"
+                    onKeyDown={handleKeyDown}
+                >
+                     <DialogClose asChild className="absolute top-4 right-4 z-50">
+                        <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/50 hover:bg-black/70 text-white hover:text-white">
+                            <X className="h-8 w-8" />
+                        </Button>
+                    </DialogClose>
+
+                    {/* Slideshow Content */}
+                    <div className="relative w-full h-full flex items-center justify-center">
+                         <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute left-4 top-1/2 -translate-y-1/2 h-14 w-14 rounded-full bg-black/30 hover:bg-black/50 text-white disabled:hidden"
+                            onClick={goToPrevSlide}
+                            disabled={slideshowPage <= 1}
+                        >
+                            <ChevronLeft className="h-8 w-8" />
+                        </Button>
+                        
+                        <div className="w-full h-full flex items-center justify-center p-8">
+                             <Page 
+                                pageNumber={slideshowPage} 
+                                className="shadow-2xl"
+                                loading={<SpinnerLoader />}
+                                renderTextLayer={false}
+                                renderAnnotationLayer={false}
+                                devicePixelRatio={window.devicePixelRatio || 1}
+                             />
+                        </div>
+                        
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute right-4 top-1/2 -translate-y-1/2 h-14 w-14 rounded-full bg-black/30 hover:bg-black/50 text-white disabled:hidden"
+                            onClick={goToNextSlide}
+                            disabled={slideshowPage >= numPages}
+                        >
+                            <ChevronRight className="h-8 w-8" />
+                        </Button>
+                    </div>
+
+                    <div className="absolute bottom-4 text-center text-white bg-black/50 px-4 py-2 rounded-full">
+                        Page {slideshowPage} of {numPages}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             <Button asChild variant="outline">
                 <a href={fileUrl} download>
                     <Download className="h-4 w-4 mr-2" />
@@ -176,4 +249,3 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
     </div>
   );
 }
-
