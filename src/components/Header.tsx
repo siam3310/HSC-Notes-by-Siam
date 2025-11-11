@@ -23,7 +23,7 @@ export function Header() {
         <div className="flex justify-between items-center py-2">
           <Link
             href="/"
-            className="flex items-center gap-2 text-2xl font-title text-foreground bg-secondary px-3 py-1 rounded-lg"
+            className="flex items-center gap-2 text-2xl text-foreground bg-secondary px-3 py-1 rounded-lg font-title"
           >
             <BookText className="h-6 w-6 text-primary"/>
             <h1>HSC Notes</h1>

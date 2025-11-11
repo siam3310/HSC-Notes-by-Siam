@@ -18,8 +18,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-sans)", ...fontFamily.sans],
-        title: ["var(--font-title)", ...fontFamily.sans],
+        sans: ['"Comic Relief"', 'cursive', ...fontFamily.sans],
+        title: ['"Bungee Shade"', 'sans-serif'],
         mono: ['monospace'],
       },
       colors: {
