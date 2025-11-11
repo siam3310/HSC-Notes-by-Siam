@@ -5,7 +5,7 @@ import { useState, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { useInView } from 'react-intersection-observer';
+import { InView } from 'react-intersection-observer';
 
 import { Loader as SpinnerLoader } from '@/components/Loader';
 import { Button } from '@/components/ui/button';
@@ -141,7 +141,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                         </Button>
                         
                         <div className="w-full h-full flex items-center justify-center p-8">
-                            <Document file={fileUrl} loading="" error="">
+                             <Document file={fileUrl} loading="" error="">
                                 <Page 
                                     pageNumber={slideshowPage} 
                                     className="shadow-2xl"
