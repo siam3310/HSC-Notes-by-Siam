@@ -7,12 +7,13 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { Loader as SpinnerLoader } from '@/components/Loader';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, Download } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 // Configure the PDF.js worker.
-pdfjs.GlobalWorkerOptions.workerSrc = `/static/pdf.worker.min.js`;
+// Use the non-module worker from a CDN. This is a reliable way for Next.js.
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 
 const loadingSpinner = (
@@ -91,6 +92,14 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
             </Button>
              <Button variant="outline" size="icon" onClick={rotate}>
                 <RotateCw className="h-4 w-4" />
+            </Button>
+        </div>
+        <div className="flex items-center">
+            <Button asChild variant="outline">
+                <a href={fileUrl} download>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                </a>
             </Button>
         </div>
       </div>
