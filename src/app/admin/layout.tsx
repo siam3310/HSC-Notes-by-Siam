@@ -127,13 +127,12 @@ export default function AdminLayout({
 
   return (
     <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader className="justify-between">
+      <Sidebar variant="sidebar" collapsible="icon">
+        <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
              <BookText className="h-6 w-6 text-primary"/>
              <span className="font-semibold text-lg">Admin Panel</span>
           </div>
-           <SidebarTrigger className="hidden md:flex" />
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
@@ -173,9 +172,10 @@ export default function AdminLayout({
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <SidebarMenu>
+           <SidebarTrigger />
+           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={handleLogout}>
+              <SidebarMenuButton onClick={handleLogout} tooltip="Logout">
                 <LogOut />
                 <span>Logout</span>
               </SidebarMenuButton>
