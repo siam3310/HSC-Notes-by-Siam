@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import useResizeObserver from 'use-resize-observer';
+import { Skeleton } from './ui/skeleton';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -34,10 +35,17 @@ const errorComponent = (error?: Error) => (
     </Alert>
 );
 
+const PageSkeleton = ({ height }: { height: number }) => (
+    <div className="flex justify-center p-2">
+        <Skeleton style={{ height: `${height}px`, width: '100%' }} />
+    </div>
+);
+
 export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   const [numPages, setNumPages] = useState<number>(0);
   const [scale, setScale] = useState(1.0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [loadingStates, setLoadingStates] = useState<Record<number, boolean>>({});
 
   const { ref: containerRef, width = 1 } = useResizeObserver<HTMLDivElement>();
   
@@ -46,12 +54,20 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   const rowVirtualizer = useVirtualizer({
     count: numPages,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => (width / (8.5 / 11)) * scale, // Estimate height based on aspect ratio
+    estimateSize: () => (width * 1.41), // A4 aspect ratio
     overscan: 2,
   });
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
+  };
+  
+  const onPageRenderSuccess = (pageNumber: number) => {
+    setLoadingStates(prev => ({ ...prev, [pageNumber]: false }));
+  };
+
+  const onPageRenderStart = (pageNumber: number) => {
+     setLoadingStates(prev => ({ ...prev, [pageNumber]: true }));
   };
   
   const visibleItems = rowVirtualizer.getVirtualItems();
@@ -135,13 +151,13 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                         <Page
                             key={`page_${virtualItem.index + 1}`}
                             pageNumber={virtualItem.index + 1}
-                            width={Math.min(width * 0.95, 800 * scale)} // Responsive width with a max
+                            width={width ? width * 0.95 : undefined}
                             scale={scale}
-                            loading={
-                                <div style={{width: Math.min(width * 0.95, 800 * scale), height: Math.min(width * 0.95, 800 * scale) * 1.41 * scale}} className="flex items-center justify-center">
-                                    <SpinnerLoader />
-                                </div>
-                            }
+                            onRenderSuccess={() => onPageRenderSuccess(virtualItem.index + 1)}
+                            onRenderError={() => onPageRenderSuccess(virtualItem.index + 1)} // Also stop loading on error
+                            loading={<PageSkeleton height={virtualItem.size} />}
+                            renderTextLayer={false}
+                            renderAnnotationLayer={false}
                             className="shadow-lg"
                         />
                     </div>
@@ -153,3 +169,4 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
     </div>
   );
 }
+
