@@ -18,7 +18,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-sans)", ...fontFamily.sans],
+        sans: ["Helvetica", "Arial", "sans-serif", ...fontFamily.sans],
       },
       colors: {
         background: 'hsl(var(--background))',
