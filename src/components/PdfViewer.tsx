@@ -116,7 +116,7 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
       ref={containerRef}
       id="viewerContainer"
       className="pdf-viewer-container"
-      style={{ position: 'relative', height: '800px', overflow: 'auto', border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))' }}
+      style={{ height: '800px', overflow: 'auto', border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))' }}
     >
       <div id="viewer" ref={viewerRef} className="pdfViewer"></div>
     </div>
