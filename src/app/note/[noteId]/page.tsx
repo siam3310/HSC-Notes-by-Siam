@@ -6,14 +6,14 @@ import { getNoteById } from '@/lib/data';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Download, X } from 'lucide-react';
+import { Download, X, Loader, FileText } from 'lucide-react';
 import Image from 'next/image';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { PdfViewer } from '@/components/PdfViewer';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { NoteWithRelations } from '@/lib/types';
 import { useEffect, useState } from 'react';
-import { Loader } from '@/components/Loader';
+import { Loader as SpinnerLoader } from '@/components/Loader';
 
 interface NotePageProps {
   params: {
@@ -25,6 +25,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
   const params = useParams();
   const [note, setNote] = useState<NoteWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pdfsToLoad, setPdfsToLoad] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const noteIdStr = Array.isArray(params.noteId) ? params.noteId[0] : params.noteId;
@@ -49,8 +50,12 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
     fetchNote();
   }, [params.noteId]);
 
+  const handleLoadPdf = (pdfId: number) => {
+    setPdfsToLoad(prev => ({ ...prev, [pdfId]: true }));
+  };
+
   if (loading) {
-    return <div className="flex justify-center items-center h-64"><Loader /></div>;
+    return <div className="flex justify-center items-center h-64"><SpinnerLoader /></div>;
   }
   
   if (!note) {
@@ -76,13 +81,13 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
             {note.chapter_name && <span className="mx-2">&gt;</span>}
             {note.chapter_name && <span>{note.chapter_name}</span>}
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold mt-2 tracking-tight">{note.topic_title}</h1>
+          <h1 className="text-3xl md:text-4xl mt-2 tracking-tight">{note.topic_title}</h1>
         </header>
 
         <div className="space-y-8 py-8">
           {hasImages && (
             <div className="px-4 sm:px-8">
-              <h2 className="text-2xl font-semibold mb-4">Images</h2>
+              <h2 className="text-2xl mb-4">Images</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {images.map((image) => (
                     <Dialog key={image.id}>
@@ -133,14 +138,30 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
 
           {hasPdfs && (
             <div className="px-6 sm:px-8">
-              <h2 className="text-2xl font-semibold mb-4">
+              <h2 className="text-2xl mb-4">
                 {pdfs.length > 1 ? 'PDF Documents' : 'PDF Document'}
               </h2>
-              <div className="space-y-8">
+               <p className="text-muted-foreground mb-4">Click on a file to load the PDF viewer.</p>
+              <div className="space-y-4">
                 {pdfs.map((pdf) => (
-                  <div key={pdf.id} className="h-[800px] w-full rounded-lg border overflow-hidden">
-                    <PdfViewer fileUrl={pdf.pdf_url} />
-                  </div>
+                  <Card key={pdf.id} className="overflow-hidden">
+                    {pdfsToLoad[pdf.id] ? (
+                       <div className="h-[800px] w-full">
+                         <PdfViewer fileUrl={pdf.pdf_url} />
+                       </div>
+                    ) : (
+                      <CardHeader className="flex flex-row items-center justify-between">
+                         <div className="flex items-center gap-3">
+                           <FileText className="h-5 w-5 text-muted-foreground"/>
+                           <span className="text-foreground/90">{decodeURIComponent(pdf.pdf_url.split('/').pop()?.substring(14) ?? 'PDF Document')}</span>
+                         </div>
+                         <Button onClick={() => handleLoadPdf(pdf.id)}>
+                            <Loader className="mr-2 h-4 w-4"/>
+                            Load PDF
+                         </Button>
+                      </CardHeader>
+                    )}
+                  </Card>
                 ))}
               </div>
             </div>
