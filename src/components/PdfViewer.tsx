@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, createRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -48,26 +48,27 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   const [scale, setScale] = useState(1.0);
   const [currentPage, setCurrentPage] = useState(1);
   const [slideshowPage, setSlideshowPage] = useState(1);
+  const pageRefs = useRef<React.RefObject<HTMLDivElement>[]>([]);
 
-  const { ref: containerRef, width = 1 } = useResizeObserver<HTMLDivElement>();
+  const { ref: containerRef, width: containerWidth = 1 } = useResizeObserver<HTMLDivElement>();
   
   const parentRef = useRef<HTMLDivElement>(null);
 
   const rowVirtualizer = useVirtualizer({
     count: numPages,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => (width * 1.41 * scale), 
+    estimateSize: () => (containerWidth * 1.41 * scale), 
     overscan: 2,
   });
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
+    // Create refs for each page
+    pageRefs.current = Array(numPages).fill(0).map((_, i) => pageRefs.current[i] || createRef());
   };
   
-  const handlePageVisible = (page: number, inView: boolean) => {
-    if (inView) {
-      setCurrentPage(page);
-    }
+  const handlePageVisible = (page: number) => {
+    setCurrentPage(page);
   };
 
   const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 2.5));
@@ -79,24 +80,38 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
 
   const goToPrevSlide = () => setSlideshowPage(p => Math.max(1, p - 1));
   const goToNextSlide = () => setSlideshowPage(p => Math.min(numPages, p + 1));
+  
+  const handleGoToPage = (pageNumber: number) => {
+    const pageIndex = pageNumber - 1;
+    if (pageRefs.current[pageIndex]?.current) {
+      pageRefs.current[pageIndex].current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    } else {
+        rowVirtualizer.scrollToIndex(pageIndex, { align: 'start' });
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowRight') goToNextSlide();
     if (e.key === 'ArrowLeft') goToPrevSlide();
   };
+  
+  const width = Math.min(containerWidth * 0.95, 1000); // Set max width for readability
 
   return (
     <div className="flex h-full w-full flex-col rounded-lg border bg-secondary/30">
       {/* Toolbar */}
       <div className="sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 border-b bg-card p-2">
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => rowVirtualizer.scrollToIndex(currentPage - 2)} disabled={currentPage <= 1}>
+            <Button variant="outline" size="icon" onClick={() => handleGoToPage(currentPage - 1)} disabled={currentPage <= 1}>
                 <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-sm font-medium text-muted-foreground w-24 text-center">
                 Page {currentPage} of {numPages || '...'}
             </span>
-            <Button variant="outline" size="icon" onClick={() => rowVirtualizer.scrollToIndex(currentPage)} disabled={!numPages || currentPage >= numPages}>
+            <Button variant="outline" size="icon" onClick={() => handleGoToPage(currentPage + 1)} disabled={!numPages || currentPage >= numPages}>
                 <ChevronRight className="h-4 w-4" />
             </Button>
         </div>
@@ -186,7 +201,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
       <div ref={containerRef} className="flex-grow">
         <div
             ref={parentRef}
-            className="h-full max-h-[85vh] w-full overflow-y-auto"
+            className="h-full w-full overflow-y-auto"
         >
              <Document
                 file={fileUrl}
@@ -199,6 +214,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                 {rowVirtualizer.getVirtualItems().map((virtualItem) => (
                     <div
                         key={virtualItem.key}
+                        ref={pageRefs.current[virtualItem.index]}
                         style={{
                             position: 'absolute',
                             top: 0,
@@ -214,14 +230,14 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                             threshold={0.5}
                             onChange={(inView) => {
                                 if (inView) {
-                                    handlePageVisible(virtualItem.index + 1, true);
+                                    handlePageVisible(virtualItem.index + 1);
                                 }
                             }}
                         >
                             <Page
                                 key={`page_${virtualItem.index + 1}`}
                                 pageNumber={virtualItem.index + 1}
-                                width={width ? width * 0.95 : undefined}
+                                width={width}
                                 scale={scale}
                                 loading={<PageSkeleton height={width * 1.41 * scale} />}
                                 renderTextLayer={false}

@@ -79,8 +79,8 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
   const hasPdfs = pdfs.length > 0;
 
   return (
-    <div className="-mt-8">
-      <article className="p-0">
+    <div className="-mt-8 flex flex-col h-full">
+      <article className="p-0 flex flex-col h-full">
         <header className="border-b p-6 sm:p-8">
           <div className="text-sm text-muted-foreground tracking-wide uppercase">
             <Link href={`/subject/${encodeURIComponent(note.subject_name)}`} className="hover:text-foreground transition-colors">
@@ -92,7 +92,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
           <h1 className="text-3xl md:text-4xl mt-2 tracking-tight">{note.topic_title}</h1>
         </header>
 
-        <div className="space-y-8 py-8">
+        <div className="space-y-8 py-8 flex-grow flex flex-col h-full">
           {hasImages && (
             <div className="px-4 sm:px-8">
               <h2 className="text-2xl mb-4">Images</h2>
@@ -145,13 +145,13 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
           )}
 
           {hasPdfs && (
-            <div className="px-6 sm:px-8">
+            <div className="px-6 sm:px-8 flex-grow flex flex-col h-full">
               <h2 className="text-2xl mb-4">
                 {pdfs.length > 1 ? 'PDF Documents' : 'PDF Document'}
               </h2>
-               <div className="space-y-8">
+               <div className="space-y-8 flex-grow flex flex-col h-full">
                 {pdfs.map((pdf) => (
-                  <div key={pdf.id} className="overflow-hidden rounded-lg border">
+                  <div key={pdf.id} className="overflow-hidden rounded-lg border flex-grow h-full">
                      <PdfViewer fileUrl={pdf.pdf_url} />
                   </div>
                 ))}
