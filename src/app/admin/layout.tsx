@@ -12,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarInset,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import {
@@ -31,6 +32,17 @@ import { Loader } from '@/components/Loader';
 
 const ADMIN_PASSCODE = 'siam3310';
 const SESSION_STORAGE_KEY = 'admin_authenticated';
+
+const AdminSidebarHeader = () => {
+    const { state } = useSidebar();
+    return (
+        <SidebarHeader>
+          <div className="flex items-center p-2 h-[49px] justify-center">
+             <BookText className="h-7 w-7 text-primary"/>
+          </div>
+        </SidebarHeader>
+    )
+}
 
 export default function AdminLayout({
   children,
@@ -128,12 +140,7 @@ export default function AdminLayout({
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarHeader>
-          <div className="flex items-center gap-2 p-2">
-             <BookText className="h-6 w-6 text-primary"/>
-             <span className="font-semibold text-lg">Admin Panel</span>
-          </div>
-        </SidebarHeader>
+        <AdminSidebarHeader />
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
