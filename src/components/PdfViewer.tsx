@@ -1,120 +1,121 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState, useCallback } from 'react';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { Loader as SpinnerLoader } from '@/components/Loader';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
-// Setting worker path
-import * as pdfjsLib from 'pdfjs-dist';
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.mjs`;
-}
+// Configure the PDF.js worker.
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PdfViewerProps {
   fileUrl: string;
 }
 
-declare global {
-  interface Window {
-    pdfjsViewer: any;
-  }
-}
+const loadingSpinner = (
+    <div className="flex flex-col items-center justify-center h-full">
+        <SpinnerLoader />
+        <p className="mt-4 text-muted-foreground">Loading PDF...</p>
+    </div>
+);
+
+const errorComponent = (error: Error) => (
+    <Alert variant="destructive" className="m-4">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Error Loading PDF</AlertTitle>
+      <AlertDescription>
+        There was a problem loading the PDF file. Please try again later.
+        <p className="text-xs mt-2 font-mono">{error.message}</p>
+      </AlertDescription>
+    </Alert>
+);
 
 export function PdfViewer({ fileUrl }: PdfViewerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<HTMLDivElement>(null);
-  const [isViewerLoaded, setIsViewerLoaded] = useState(false);
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [scale, setScale] = useState(1.0);
+  const [rotation, setRotation] = useState(0);
+
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+    setPageNumber(1); // Reset to first page on new document load
+  };
+
+  const goToPrevPage = () => {
+    setPageNumber(prev => Math.max(prev - 1, 1));
+  };
+
+  const goToNextPage = () => {
+    setPageNumber(prev => Math.min(prev + 1, numPages || 1));
+  };
+
+  const zoomIn = () => {
+    setScale(prev => Math.min(prev + 0.2, 3.0));
+  };
+
+  const zoomOut = () => {
+    setScale(prev => Math.max(prev - 0.2, 0.5));
+  };
   
-  // Effect to load the viewer's JS library
-  useEffect(() => {
-    const jsUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.js';
-    
-    if (window.pdfjsViewer) {
-      setIsViewerLoaded(true);
-      return;
-    }
-    
-    let script = document.querySelector(`script[src="${jsUrl}"]`) as HTMLScriptElement;
-    if (!script) {
-        script = document.createElement('script');
-        script.src = jsUrl;
-        script.async = true;
-        script.onload = () => setIsViewerLoaded(true);
-        script.onerror = () => console.error('Failed to load PDF Viewer script');
-        document.body.appendChild(script);
-    } else if (script.dataset.loaded) {
-        setIsViewerLoaded(true);
-    } else {
-        const onLoad = () => {
-           setIsViewerLoaded(true);
-           script.dataset.loaded = 'true';
-           script.removeEventListener('load', onLoad);
-        }
-        script.addEventListener('load', onLoad);
-    }
-  }, []);
-
-  // Effect to initialize the viewer once the library is loaded
-  useEffect(() => {
-    if (!isViewerLoaded || !fileUrl || !containerRef.current || !viewerRef.current) {
-        return;
-    }
-
-    const { PDFViewer, EventBus, PDFFindController, PDFLinkService } = window.pdfjsViewer;
-
-    const eventBus = new EventBus();
-    const linkService = new PDFLinkService({ eventBus });
-    const findController = new PDFFindController({ eventBus, linkService });
-
-    // Forcefully set the position style directly on the DOM element before initialization.
-    // This is the most reliable way to prevent the "container must be absolutely positioned" error.
-    containerRef.current.style.position = 'relative';
-
-    const pdfViewer = new PDFViewer({
-        container: containerRef.current,
-        viewer: viewerRef.current,
-        eventBus,
-        linkService,
-        findController,
-        textLayerMode: 1, 
-        annotationLayerMode: 2,
-        renderer: 'canvas',
-        useOnlyCssZoom: false,
-    });
-
-    linkService.setViewer(pdfViewer);
-
-    const loadingTask = pdfjsLib.getDocument(fileUrl);
-    loadingTask.promise
-      .then((pdfDocument) => {
-        pdfViewer.setDocument(pdfDocument);
-        linkService.setDocument(pdfDocument, null);
-      })
-      .catch((reason) => {
-        console.error('Error during PDF loading: ' + reason);
-      });
-
-    return () => {
-      loadingTask.destroy().catch(() => {});
-      if (pdfViewer) {
-          pdfViewer.cleanup();
-          pdfViewer.setDocument(null);
-      }
-      const pdfViewerDiv = viewerRef.current;
-      if (pdfViewerDiv) {
-          pdfViewerDiv.innerHTML = '';
-      }
-    };
-  }, [fileUrl, isViewerLoaded]);
+  const rotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  }
 
   return (
-    <div
-      ref={containerRef}
-      className="pdf-viewer-container"
-      style={{ height: '800px', width: '100%', overflow: 'auto', border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
-    >
-      <div id="viewer" ref={viewerRef} className="pdfViewer"></div>
-      {!isViewerLoaded && <div className="absolute inset-0 flex items-center justify-center"><SpinnerLoader /></div>}
+    <div className="w-full bg-secondary/30 rounded-lg border">
+      {/* Toolbar */}
+      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 p-2 bg-card border-b">
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={goToPrevPage} disabled={pageNumber <= 1}>
+                <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-medium text-muted-foreground">
+                Page {pageNumber} of {numPages || '...'}
+            </span>
+            <Button variant="outline" size="icon" onClick={goToNextPage} disabled={pageNumber >= (numPages || 0)}>
+                <ChevronRight className="h-4 w-4" />
+            </Button>
+        </div>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={zoomOut}>
+                <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-medium text-muted-foreground">
+                {Math.round(scale * 100)}%
+            </span>
+            <Button variant="outline" size="icon" onClick={zoomIn}>
+                <ZoomIn className="h-4 w-4" />
+            </Button>
+             <Button variant="outline" size="icon" onClick={rotate}>
+                <RotateCw className="h-4 w-4" />
+            </Button>
+        </div>
+      </div>
+      
+      {/* PDF Document */}
+      <div className="flex justify-center p-4 overflow-auto" style={{ height: '800px' }}>
+        <Document
+          file={fileUrl}
+          onLoadSuccess={onDocumentLoadSuccess}
+          loading={loadingSpinner}
+          error={errorComponent}
+          className="flex justify-center"
+        >
+          <Page 
+            pageNumber={pageNumber} 
+            scale={scale}
+            rotate={rotation}
+            loading={loadingSpinner}
+            className="shadow-lg"
+          />
+        </Document>
+      </div>
     </div>
   );
 }
