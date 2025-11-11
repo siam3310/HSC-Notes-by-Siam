@@ -19,7 +19,6 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Comic Relief"', 'cursive', ...fontFamily.sans],
-        title: ['"Bungee Shade"', 'sans-serif'],
         mono: ['monospace'],
       },
       colors: {

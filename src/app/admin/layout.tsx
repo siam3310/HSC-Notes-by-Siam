@@ -185,7 +185,7 @@ export default function AdminLayout({
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center justify-between border-b bg-card/50 px-4 md:hidden">
-            <Link href="/" className="flex items-center gap-2 font-semibold font-title text-xl">
+            <Link href="/" className="flex items-center gap-2 font-semibold text-xl">
                 <BookText className="h-6 w-6 text-primary"/>
                 <span className="">HSC Notes</span>
             </Link>
