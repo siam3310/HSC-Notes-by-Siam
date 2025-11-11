@@ -24,23 +24,10 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   const [isViewerLoaded, setIsViewerLoaded] = useState(false);
-  const [isCssLoaded, setIsCssLoaded] = useState(false);
-
+  
+  // Effect to load the viewer's JS library
   useEffect(() => {
-    const cssUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css';
     const jsUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.js';
-    
-    let cssLink = document.querySelector(`link[href="${cssUrl}"]`) as HTMLLinkElement;
-    if (!cssLink) {
-        cssLink = document.createElement('link');
-        cssLink.rel = 'stylesheet';
-        cssLink.href = cssUrl;
-        cssLink.onload = () => setIsCssLoaded(true);
-        document.head.appendChild(cssLink);
-    } else {
-        // If CSS is already in the DOM, assume it's loaded.
-        setIsCssLoaded(true);
-    }
     
     if (window.pdfjsViewer) {
       setIsViewerLoaded(true);
@@ -53,6 +40,7 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
         script.src = jsUrl;
         script.async = true;
         script.onload = () => setIsViewerLoaded(true);
+        script.onerror = () => console.error('Failed to load PDF Viewer script');
         document.body.appendChild(script);
     } else if (script.dataset.loaded) {
         setIsViewerLoaded(true);
@@ -66,8 +54,9 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
     }
   }, []);
 
+  // Effect to initialize the viewer once the library is loaded
   useEffect(() => {
-    if (!isViewerLoaded || !isCssLoaded || !fileUrl || !containerRef.current || !viewerRef.current) {
+    if (!isViewerLoaded || !fileUrl || !containerRef.current || !viewerRef.current) {
         return;
     }
 
@@ -102,27 +91,26 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
       });
 
     return () => {
-      loadingTask.destroy();
-      // Ensure pdfViewer is cleaned up properly
+      loadingTask.destroy().catch(() => {});
       if (pdfViewer) {
+          pdfViewer.cleanup();
           pdfViewer.setDocument(null);
       }
       const pdfViewerDiv = viewerRef.current;
       if (pdfViewerDiv) {
-          while (pdfViewerDiv.firstChild) {
-              pdfViewerDiv.removeChild(pdfViewerDiv.firstChild);
-          }
+          pdfViewerDiv.innerHTML = '';
       }
     };
-  }, [fileUrl, isViewerLoaded, isCssLoaded]);
+  }, [fileUrl, isViewerLoaded]);
 
   return (
     <div
       ref={containerRef}
       className="pdf-viewer-container"
-      style={{ height: '800px', overflow: 'auto', border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))', position: 'relative' }}
+      style={{ height: '800px', width: '100%', overflow: 'auto', border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
     >
       <div id="viewer" ref={viewerRef} className="pdfViewer"></div>
+      {!isViewerLoaded && <div className="absolute inset-0 flex items-center justify-center"><SpinnerLoader /></div>}
     </div>
   );
 }
