@@ -6,13 +6,27 @@ import { getNoteById } from '@/lib/data';
 import { notFound, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Download, X } from 'lucide-react';
+import { Download, X, Loader } from 'lucide-react';
 import Image from 'next/image';
-import { PdfViewer } from '@/components/PdfViewer';
+import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { NoteWithRelations } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Loader as SpinnerLoader } from '@/components/Loader';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const PdfViewer = dynamic(() => import('@/components/PdfViewer').then(mod => mod.PdfViewer), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[800px] w-full items-center justify-center rounded-lg border bg-card">
+      <div className="flex flex-col items-center gap-4">
+        <SpinnerLoader />
+        <p className="text-muted-foreground">Loading PDF Viewer...</p>
+      </div>
+    </div>
+  ),
+});
+
 
 interface NotePageProps {
   params: {

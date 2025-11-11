@@ -1,6 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Comic+Relief:wght@400;700&display=swap');
-@import '@react-pdf-viewer/core/lib/styles/index.css';
-@import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 @import './loader.css';
 
 @tailwind base;
@@ -70,69 +68,4 @@
   h1, h2, h3, h4, h5, h6 {
      font-family: 'Comic Relief', cursive;
   }
-}
-
-/* Custom styles for react-pdf-viewer in dark mode */
-.rpv-core__viewer {
-    border-color: hsl(var(--border));
-    background-color: hsl(var(--background));
-}
-
-.rpv-core__inner-pages {
-    background-color: hsl(var(--background));
-}
-
-.rpv-core__page-layer {
-    background-color: hsl(var(--background));
-}
-
-.rpv-default-layout__toolbar {
-    background-color: hsl(var(--card));
-    border-bottom: 1px solid hsl(var(--border));
-}
-
-.rpv-core__minimal-button,
-.rpv-core__minimal-button:hover,
-.rpv-default-layout__toolbar-item,
-.rpv-default-layout__toolbar-item:hover {
-    color: hsl(var(--card-foreground));
-}
-
-.rpv-core__popover-body, .rpv-core__popover-body-inner, .rpv-core__menu {
-     background-color: hsl(var(--card));
-     border: 1px solid hsl(var(--border));
-     color: hsl(var(--card-foreground));
-}
-
-.rpv-core__menu-item:hover {
-    background-color: hsl(var(--accent));
-}
-
-.rpv-default-layout__sidebar {
-    background-color: hsl(var(--card));
-    border-right: 1px solid hsl(var(--border));
-}
-
-.rpv-default-layout__sidebar-body {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted)) hsl(var(--background));
-}
-.rpv-default-layout__sidebar-body::-webkit-scrollbar {
-  width: 8px;
-}
-.rpv-default-layout__sidebar-body::-webkit-scrollbar-track {
-  background: hsl(var(--background));
-}
-.rpv-default-layout__sidebar-body::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted));
-  border-radius: 6px;
-  border: 3px solid hsl(var(--background));
-}
-
-.rpv-default-layout__thumbnail {
-    border: 1px solid hsl(var(--border));
-}
-
-.rpv-default-layout__thumbnail--selected {
-    border-color: hsl(var(--primary));
 }
