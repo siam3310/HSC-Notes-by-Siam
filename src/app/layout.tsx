@@ -3,6 +3,11 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AppLayout } from '@/components/AppLayout';
 
+export const metadata: Metadata = {
+  title: 'HSC Notes',
+  description: 'A comprehensive collection of study notes for HSC students.',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -10,10 +15,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <head>
-          <title>HSC Notes</title>
-          <meta name="description" content="A comprehensive collection of study notes for HSC students." />
-      </head>
       <body className="antialiased">
         <AppLayout>
             {children}

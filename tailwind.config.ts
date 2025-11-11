@@ -18,8 +18,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Comic Relief"', 'cursive', ...fontFamily.sans],
-        mono: ['monospace'],
+        sans: ["var(--font-sans)", ...fontFamily.sans],
       },
       colors: {
         background: 'hsl(var(--background))',
