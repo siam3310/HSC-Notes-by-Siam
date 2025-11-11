@@ -66,6 +66,10 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
     const linkService = new PDFLinkService({ eventBus });
     const findController = new PDFFindController({ eventBus, linkService });
 
+    // Forcefully set the position style directly on the DOM element before initialization.
+    // This is the most reliable way to prevent the "container must be absolutely positioned" error.
+    containerRef.current.style.position = 'relative';
+
     const pdfViewer = new PDFViewer({
         container: containerRef.current,
         viewer: viewerRef.current,
