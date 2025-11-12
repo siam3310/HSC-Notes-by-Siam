@@ -54,6 +54,8 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   
   const parentRef = useRef<HTMLDivElement>(null);
 
+  const proxiedUrl = `/api/pdf-proxy?url=${encodeURIComponent(fileUrl)}`;
+
   const rowVirtualizer = useVirtualizer({
     count: numPages,
     getScrollElement: () => parentRef.current,
@@ -159,7 +161,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                         </Button>
                         
                         <div className="w-full h-full flex items-center justify-center p-8">
-                             <Document file={fileUrl} loading="" error="">
+                             <Document file={proxiedUrl} loading="" error="">
                                 <Page 
                                     pageNumber={slideshowPage} 
                                     className="shadow-2xl"
@@ -204,7 +206,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
             className="h-[800px] w-full overflow-y-auto"
         >
              <Document
-                file={fileUrl}
+                file={proxiedUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
                 loading={loadingSpinner}
                 error={errorComponent}
