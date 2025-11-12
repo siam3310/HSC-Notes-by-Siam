@@ -46,13 +46,6 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  webpack: (config, { isServer }) => {
-    // Exclude canvas from being bundled on the server for pdf.js
-    if (isServer) {
-        config.externals.push('canvas');
-    }
-    return config
-  },
 };
 
 export default nextConfig;
