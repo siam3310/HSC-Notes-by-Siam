@@ -48,7 +48,6 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   const [scale, setScale] = useState(1.0);
   const [currentPage, setCurrentPage] = useState(1);
   const [slideshowPage, setSlideshowPage] = useState(1);
-  const pageRefs = useRef<React.RefObject<HTMLDivElement>[]>([]);
 
   const { ref: containerRef, width: containerWidth = 1 } = useResizeObserver<HTMLDivElement>();
   
@@ -65,8 +64,6 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
-    // Create refs for each page
-    pageRefs.current = Array(numPages).fill(0).map((_, i) => pageRefs.current[i] || createRef());
   };
   
   const handlePageVisible = (page: number) => {
@@ -84,15 +81,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   const goToNextSlide = () => setSlideshowPage(p => Math.min(numPages, p + 1));
   
   const handleGoToPage = (pageNumber: number) => {
-    const pageIndex = pageNumber - 1;
-    if (pageRefs.current[pageIndex]?.current) {
-      pageRefs.current[pageIndex].current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    } else {
-        rowVirtualizer.scrollToIndex(pageIndex, { align: 'start' });
-    }
+    rowVirtualizer.scrollToIndex(pageNumber - 1, { align: 'start', behavior: 'smooth' });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -216,7 +205,8 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                 {rowVirtualizer.getVirtualItems().map((virtualItem) => (
                     <div
                         key={virtualItem.key}
-                        ref={pageRefs.current[virtualItem.index]}
+                        ref={rowVirtualizer.measureElement}
+                        data-index={virtualItem.index}
                         style={{
                             position: 'absolute',
                             top: 0,
@@ -248,7 +238,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                             />
                         </InView>
                     </div>
-                ))}
+                ))}\
             </div>
           </Document>
         </div>
