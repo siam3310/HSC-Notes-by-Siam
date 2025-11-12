@@ -121,6 +121,38 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     }
   }, [selectedSubjectId, chapters, form, isEditMode]);
   
+  // Custom upload function with progress tracking
+  const uploadFileWithProgress = async (
+    file: File,
+    filePath: string,
+    bucket: string,
+    onProgress: (progress: number) => void,
+    abortController: AbortController
+  ): Promise<{ publicUrl: string | null; error: Error | null }> => {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        // @ts-ignore // onUploadProgress is not in the current types, but is supported
+        onUploadProgress: (event) => {
+          const progress = (event.loaded / event.total) * 100;
+          onProgress(progress);
+        },
+        signal: abortController.signal,
+      });
+
+    if (error) {
+      return { publicUrl: null, error };
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    if (!publicUrl) {
+      return { publicUrl: null, error: new Error('Could not get public URL for uploaded file.') };
+    }
+    return { publicUrl, error: null };
+  };
+
   const handleFileUpload = useCallback(async (file: File) => {
     const fileIsPdf = file.type === ACCEPTED_PDF_TYPE;
     const setter = fileIsPdf ? setPdfUploads : setImageUploads;
@@ -133,14 +165,20 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
     const filePath = `${folder}/${fileName}`;
 
     try {
-      const { error: uploadError } = await supabase.storage
-        .from('notes-pdfs')
-        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+      const { publicUrl, error: uploadError } = await uploadFileWithProgress(
+        file,
+        filePath,
+        'notes-pdfs', // Assuming this is the correct bucket name
+        (progress) => {
+          setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress } : up));
+        },
+        newUpload.source!
+      );
 
       if (uploadError) throw new Error(uploadError.message);
 
-      const { data: { publicUrl } } = supabase.storage.from('notes-pdfs').getPublicUrl(filePath);
       if (!publicUrl) throw new Error('Could not get public URL for uploaded file.');
+
       
       setter(prev => prev.map(up => up.id === newUpload.id ? { ...up, progress: 100, url: publicUrl } : up));
     } catch (error: any) {

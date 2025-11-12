@@ -13,7 +13,7 @@ import { ZoomIn, ZoomOut, Download, ChevronLeft, ChevronRight, Expand, X } from 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import useResizeObserver from 'use-resize-observer';
+import useResizeObserver, { UseResizeObserverReturn } from 'use-resize-observer';
 import { Skeleton } from './ui/skeleton';
 import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogTitle, DialogDescription } from './ui/dialog';
 
@@ -49,11 +49,8 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [slideshowPage, setSlideshowPage] = useState(1);
 
-  const { ref: containerRef, width: containerWidth = 1 } = useResizeObserver<HTMLDivElement>();
-  
+  const { ref: containerRef, width: containerWidth = 1 }: UseResizeObserverReturn<HTMLDivElement> = useResizeObserver<HTMLDivElement>();
   const parentRef = useRef<HTMLDivElement>(null);
-
-  const proxiedUrl = `/api/pdf-proxy?url=${encodeURIComponent(fileUrl)}`;
 
   const rowVirtualizer = useVirtualizer({
     count: numPages,
@@ -150,7 +147,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
                         </Button>
                         
                         <div className="w-full h-full flex items-center justify-center p-8">
-                             <Document file={proxiedUrl} loading="" error="">
+                            <Document file={fileUrl} loading="" error="">
                                 <Page 
                                     pageNumber={slideshowPage} 
                                     className="shadow-2xl"
@@ -195,8 +192,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
             className="h-[800px] w-full overflow-y-auto"
         >
              <Document
-                file={proxiedUrl}
-                onLoadSuccess={onDocumentLoadSuccess}
+                file={fileUrl}
                 loading={loadingSpinner}
                 error={errorComponent}
                 className="flex justify-center"
