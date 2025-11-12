@@ -1,102 +1,88 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
-import WebViewer from '@pdftron/webviewer';
+import React, { useRef, useEffect, useState } from 'react';
 import { Loader } from '@/components/Loader';
 
-interface PdfViewerProps {
-    documentUrl: string;
+interface AdobeViewerProps {
+  documentUrl: string;
+  fileName: string;
 }
 
-export function PdfViewer({ documentUrl }: PdfViewerProps) {
+const ADOBE_CLIENT_ID = "18c878ba4f5743eb8a63866cb602ac0b";
+const ADOBE_SDK_URL = "https://acrobatservices.adobe.com/view-sdk/viewer.js";
+
+export function PdfViewer({ documentUrl, fileName }: AdobeViewerProps) {
   const viewerDiv = useRef<HTMLDivElement>(null);
-  const webViewerInstance = useRef<any>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [sdkReady, setSdkReady] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Use a ref to store the previous documentUrl to detect changes efficiently
-  const prevDocumentUrl = useRef<string | null>(null);
-
+  // Load Adobe View SDK script
   useEffect(() => {
-    // Phase 1: Initialize WebViewer if it hasn't been initialized yet
-    if (viewerDiv.current && !webViewerInstance.current) {
-      setLoading(true); // Start loading state for initial load
-      WebViewer(
-        {
-          path: '/webviewer',
-          initialDoc: documentUrl,
-          licenseKey: 'YOUR_APRYSE_LICENSE_KEY',
-          fullAPI: true,
-          disabledElements: [
-             'header',
-             'toolsHeader',
-             'downloadButton',
-             'printButton',
-          ],
-        },
-        viewerDiv.current
-      ).then((instance) => {
-        webViewerInstance.current = instance;
-        const { documentViewer } = instance.Core;
+    if ((window as any).AdobeDC) {
+      setSdkReady(true);
+      return;
+    }
 
-        documentViewer.addEventListener('documentLoaded', () => {
-           setLoading(false);
-           // Apply settings only after document is loaded
-           if (webViewerInstance.current) {
-             webViewerInstance.current.UI.setTheme('dark');
-             webViewerInstance.current.UI.setFitMode(webViewerInstance.current.UI.FitMode.FitWidth);
-           }
-        });
-
-        // Store the initial documentUrl
-        prevDocumentUrl.current = documentUrl;
-      }).catch(error => {
-          console.error("Error initializing WebViewer:", error);
-          setLoading(false); // Stop loading if initialization fails
+    const script = document.createElement('script');
+    script.src = ADOBE_SDK_URL;
+    script.async = true;
+    script.onload = () => {
+      document.addEventListener("adobe_dc_view_sdk.ready", () => {
+        setSdkReady(true);
       });
-    }
-    // Phase 2: Handle document URL changes using the existing instance
-    else if (webViewerInstance.current && documentUrl !== prevDocumentUrl.current) {
-        setLoading(true); // Start loading state for new document
-        webViewerInstance.current.UI.loadDocument(documentUrl, {
-            // Options can be passed here if needed, e.g., 'disableWorker: true'
-        }).then(() => {
-            setLoading(false);
-            // Apply settings again after new document is loaded
-            if (webViewerInstance.current) {
-              webViewerInstance.current.UI.setTheme('dark');
-              webViewerInstance.current.UI.setFitMode(webViewerInstance.current.UI.FitMode.FitWidth);
-            }
-        }).catch(error => {
-            console.error("Error loading new document in WebViewer:", error);
-            setLoading(false); // Stop loading if new document load fails
-        });
-        prevDocumentUrl.current = documentUrl; // Update the stored documentUrl
-    }
-
-
-    // Cleanup function
-    return () => {
-      if (webViewerInstance.current) {
-          // Dispose the instance only if it was successfully initialized
-          // and prevent re-initialization if the component remounts quickly in dev mode
-          if (webViewerInstance.current.UI.dispose) { // Check if dispose method exists
-            webViewerInstance.current.UI.dispose();
-          }
-          webViewerInstance.current = null;
-          prevDocumentUrl.current = null; // Clear prev document URL on unmount
-      }
     };
-  }, [documentUrl]); // Dependency array to react to documentUrl changes
+    script.onerror = () => {
+        console.error("Adobe View SDK failed to load.");
+        setLoading(false);
+    }
+
+    document.body.appendChild(script);
+
+    return () => {
+      // Clean up script on unmount
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  // Initialize viewer once SDK is ready and documentUrl is available
+  useEffect(() => {
+    if (sdkReady && documentUrl && viewerDiv.current) {
+        setLoading(true);
+        const adobeDCView = new (window as any).AdobeDC.View({
+            clientId: ADOBE_CLIENT_ID,
+            divId: "adobe-dc-view",
+        });
+
+        const viewPromise = adobeDCView.previewFile({
+            content: { location: { url: documentUrl } },
+            metaData: { fileName: fileName || 'document.pdf' },
+        }, {
+            embedMode: "SIZED_CONTAINER",
+            showAnnotationTools: false,
+            showLeftHandPanel: true,
+            showDownloadPDF: true,
+            showPrintPDF: true,
+        });
+
+        viewPromise.then(() => {
+            setLoading(false);
+        }).catch((error:any) => {
+            console.error("AdobeDC.View.previewFile failed", error);
+            setLoading(false);
+        });
+
+    }
+  }, [sdkReady, documentUrl, fileName]);
 
   return (
-    <div className="h-[800px] w-full relative">
+    <div className="relative w-full h-[800px] border rounded-lg overflow-hidden bg-card">
       {loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-card z-10">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card">
           <Loader />
-          <p className="text-muted-foreground mt-4">Loading PDF Viewer...</p>
+          <p className="mt-4 text-muted-foreground">Loading Adobe PDF Viewer...</p>
         </div>
       )}
-      <div className="webviewer h-full w-full" ref={viewerDiv}></div>
+      <div id="adobe-dc-view" ref={viewerDiv} className="w-full h-full" />
     </div>
   );
 }
