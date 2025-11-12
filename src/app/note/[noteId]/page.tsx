@@ -170,7 +170,7 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
                <div className="space-y-8">
                 {pdfs.map((pdf) => (
                     <div key={pdf.id} className="overflow-hidden rounded-lg border">
-                      <PdfViewer fileUrl={pdf.pdf_url} />
+                      <PdfViewer fileUrl={`/api/pdf-proxy?url=${encodeURIComponent(pdf.pdf_url)}`} />
                     </div>
                   )
                 )}
