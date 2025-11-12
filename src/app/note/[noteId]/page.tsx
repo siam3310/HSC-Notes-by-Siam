@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { getNoteById } from '@/lib/data';
@@ -8,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Download, X } from 'lucide-react';
 import Image from 'next/image';
-import dynamic from 'next/dynamic';
+import dynamic from 'next/dynamic'; // Add dynamic import
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { NoteWithRelations } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Loader as SpinnerLoader } from '@/components/Loader';
 
+// Dynamic import for PdfViewer to prevent SSR issues
 const PdfViewer = dynamic(() => import('@/components/PdfViewer').then(mod => mod.PdfViewer), {
   ssr: false,
   loading: () => (
@@ -25,7 +24,6 @@ const PdfViewer = dynamic(() => import('@/components/PdfViewer').then(mod => mod
     </div>
   ),
 });
-
 
 interface NotePageProps {
   params: {
@@ -169,8 +167,8 @@ export default function NotePage({ params: initialParams }: NotePageProps) {
               </h2>
                <div className="space-y-8">
                 {pdfs.map((pdf) => (
-                    <div key={pdf.id} className="overflow-hidden rounded-lg border">
-                      <PdfViewer fileUrl={`/api/pdf-proxy?url=${encodeURIComponent(pdf.pdf_url)}`} />
+                    <div key={pdf.id} className="overflow-hidden rounded-lg border h-[800px]"> {/* Added height for the viewer */}
+                      <PdfViewer documentUrl={`/api/pdf-proxy?url=${encodeURIComponent(pdf.pdf_url)}`} />
                     </div>
                   )
                 )}

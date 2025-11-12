@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useRef, useEffect } from 'react';
@@ -6,57 +5,88 @@ import WebViewer from '@pdftron/webviewer';
 import { Loader } from '@/components/Loader';
 
 interface PdfViewerProps {
-    fileUrl: string;
+    documentUrl: string;
 }
 
-export function PdfViewer({ fileUrl }: PdfViewerProps) {
+export function PdfViewer({ documentUrl }: PdfViewerProps) {
   const viewerDiv = useRef<HTMLDivElement>(null);
+  const webViewerInstance = useRef<any>(null);
   const [loading, setLoading] = React.useState(true);
 
+  // Use a ref to store the previous documentUrl to detect changes efficiently
+  const prevDocumentUrl = useRef<string | null>(null);
+
   useEffect(() => {
-    let instance: any = null;
-    if (viewerDiv.current) {
-        WebViewer(
+    // Phase 1: Initialize WebViewer if it hasn't been initialized yet
+    if (viewerDiv.current && !webViewerInstance.current) {
+      setLoading(true); // Start loading state for initial load
+      WebViewer(
         {
-          path: '/webviewer', // Path to the copied static assets in the public folder
-          initialDoc: fileUrl,
-          licenseKey: 'YOUR_APRYSE_LICENSE_KEY', // Get your key from https://www.apryse.com/
+          path: '/webviewer',
+          initialDoc: documentUrl,
+          licenseKey: 'YOUR_APRYSE_LICENSE_KEY',
           fullAPI: true,
           disabledElements: [
-             'header', // Disables the main header
-             'toolsHeader', // Disables the tools header
+             'header',
+             'toolsHeader',
              'downloadButton',
              'printButton',
           ],
         },
         viewerDiv.current
-      ).then((inst) => {
-        instance = inst;
-        const { documentViewer } = inst.Core;
+      ).then((instance) => {
+        webViewerInstance.current = instance;
+        const { documentViewer } = instance.Core;
 
         documentViewer.addEventListener('documentLoaded', () => {
            setLoading(false);
-           inst.UI.setTheme('dark'); // Set dark theme
-           inst.UI.setFitMode(inst.UI.FitMode.FitWidth); // Set fit mode
+           // Apply settings only after document is loaded
+           if (webViewerInstance.current) {
+             webViewerInstance.current.UI.setTheme('dark');
+             webViewerInstance.current.UI.setFitMode(webViewerInstance.current.UI.FitMode.FitWidth);
+           }
         });
-        
-        // Clean up the instance when the component unmounts
-        return () => {
-            if(instance) {
-                instance.UI.dispose();
-                instance = null;
-            }
-        };
+
+        // Store the initial documentUrl
+        prevDocumentUrl.current = documentUrl;
+      }).catch(error => {
+          console.error("Error initializing WebViewer:", error);
+          setLoading(false); // Stop loading if initialization fails
       });
     }
-
-    return () => {
-        if(instance) {
-            instance.UI.dispose();
-            instance = null;
-        }
+    // Phase 2: Handle document URL changes using the existing instance
+    else if (webViewerInstance.current && documentUrl !== prevDocumentUrl.current) {
+        setLoading(true); // Start loading state for new document
+        webViewerInstance.current.UI.loadDocument(documentUrl, {
+            // Options can be passed here if needed, e.g., 'disableWorker: true'
+        }).then(() => {
+            setLoading(false);
+            // Apply settings again after new document is loaded
+            if (webViewerInstance.current) {
+              webViewerInstance.current.UI.setTheme('dark');
+              webViewerInstance.current.UI.setFitMode(webViewerInstance.current.UI.FitMode.FitWidth);
+            }
+        }).catch(error => {
+            console.error("Error loading new document in WebViewer:", error);
+            setLoading(false); // Stop loading if new document load fails
+        });
+        prevDocumentUrl.current = documentUrl; // Update the stored documentUrl
     }
-  }, [fileUrl]);
+
+
+    // Cleanup function
+    return () => {
+      if (webViewerInstance.current) {
+          // Dispose the instance only if it was successfully initialized
+          // and prevent re-initialization if the component remounts quickly in dev mode
+          if (webViewerInstance.current.UI.dispose) { // Check if dispose method exists
+            webViewerInstance.current.UI.dispose();
+          }
+          webViewerInstance.current = null;
+          prevDocumentUrl.current = null; // Clear prev document URL on unmount
+      }
+    };
+  }, [documentUrl]); // Dependency array to react to documentUrl changes
 
   return (
     <div className="h-[800px] w-full relative">
@@ -69,4 +99,4 @@ export function PdfViewer({ fileUrl }: PdfViewerProps) {
       <div className="webviewer h-full w-full" ref={viewerDiv}></div>
     </div>
   );
-};
+}
