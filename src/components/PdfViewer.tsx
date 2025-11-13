@@ -10,7 +10,7 @@ interface AdobeViewerProps {
   fileName: string;
 }
 
-const ADOBE_CLIENT_ID = "18c878ba4f5743eb8a63866cb602ac0b";
+const ADOBE_CLIENT_ID = "5f46413d7bcd4bcd9d74d243d095550c";
 const ADOBE_SDK_URL = "https://acrobatservices.adobe.com/view-sdk/viewer.js";
 
 export function PdfViewer({ pdfId, documentUrl, fileName }: AdobeViewerProps) {
