@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(buffer, { status: 200, headers });
 
   } catch (error: any) {
-    console.error(`PDF Proxy Error fetching ${pdfUrl}:`, error);
+    console.error(`PDF Proxy Error fetching ${pdfUrl}:`, error.message);
     return new NextResponse(error.message || `Failed to fetch PDF from ${pdfUrl}`, { status: 500 });
   }
 }
