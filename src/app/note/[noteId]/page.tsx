@@ -1,3 +1,4 @@
+
 'use client';
 
 import { getNoteById } from '@/lib/data';
@@ -12,13 +13,7 @@ import { useEffect, useState } from 'react';
 import { Loader as SpinnerLoader } from '@/components/Loader';
 import { PdfViewer } from '@/components/PdfViewer';
 
-interface NotePageProps {
-  params: {
-    noteId: string;
-  };
-}
-
-export default function NotePage({ params: initialParams }: NotePageProps) {
+export default function NotePage() {
   const params = useParams();
   const [note, setNote] = useState<NoteWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
