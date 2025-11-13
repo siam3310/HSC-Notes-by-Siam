@@ -37,9 +37,6 @@ export function PdfViewer({ pdfId, documentUrl, fileName }: AdobeViewerProps) {
         }, {
             embedMode: "SIZED_CONTAINER",
             showAnnotationTools: false,
-            showLeftHandPanel: true,
-            showDownloadPDF: true,
-            showPrintPDF: true,
         });
 
         viewPromise.then(() => {
@@ -62,7 +59,6 @@ export function PdfViewer({ pdfId, documentUrl, fileName }: AdobeViewerProps) {
         script.src = ADOBE_SDK_URL;
         script.async = true;
         script.onload = () => {
-            (window as any).adobe_dc_sdk_ready = true;
             document.addEventListener("adobe_dc_view_sdk.ready", initViewer);
         };
         script.onerror = () => {
@@ -72,9 +68,7 @@ export function PdfViewer({ pdfId, documentUrl, fileName }: AdobeViewerProps) {
         document.body.appendChild(script);
 
         return () => {
-           // No need to remove the script as it can be reused by other viewers.
-           // Removing the event listener could be complex if multiple components add it.
-           // The SDK is designed to handle multiple initializations.
+           document.removeEventListener("adobe_dc_view_sdk.ready", initViewer);
         };
     }
   }, [documentUrl, fileName, divId]);

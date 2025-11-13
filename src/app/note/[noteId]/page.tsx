@@ -150,12 +150,19 @@ export default function NotePage() {
               </h2>
                <div className="space-y-8">
                 {pdfs.map((pdf) => (
-                  <PdfViewer
-                    key={pdf.id}
-                    pdfId={pdf.id}
-                    documentUrl={`/api/pdf-proxy?url=${encodeURIComponent(pdf.pdf_url)}`}
-                    fileName={`${note.topic_title}.pdf`}
-                  />
+                  <div key={pdf.id} className="space-y-4">
+                    <PdfViewer
+                      pdfId={pdf.id}
+                      documentUrl={`/api/pdf-proxy?url=${encodeURIComponent(pdf.pdf_url)}`}
+                      fileName={`${note.topic_title}.pdf`}
+                    />
+                    <Button asChild>
+                      <a href={pdf.pdf_url} download target="_blank" rel="noopener noreferrer">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download PDF
+                      </a>
+                    </Button>
+                  </div>
                   )
                 )}
               </div>
