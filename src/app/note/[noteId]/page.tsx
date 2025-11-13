@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { getNoteById } from '@/lib/data';
@@ -151,6 +152,7 @@ export default function NotePage() {
                 {pdfs.map((pdf) => (
                   <PdfViewer
                     key={pdf.id}
+                    pdfId={pdf.id}
                     documentUrl={`/api/pdf-proxy?url=${encodeURIComponent(pdf.pdf_url)}`}
                     fileName={`${note.topic_title}.pdf`}
                   />
