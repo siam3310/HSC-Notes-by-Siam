@@ -28,7 +28,7 @@ export default async function SubjectPage({ params }: SubjectPageProps) {
   const { notes } = notesResult;
 
   const notesByChapter = notes.reduce((acc, note) => {
-    const chapter = note.chapter_name || 'Uncategorized';
+    const chapter = note.chapter_name || '✨Special✨';
     if (!acc[chapter]) {
       acc[chapter] = [];
     }
