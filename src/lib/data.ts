@@ -103,3 +103,31 @@ export async function getNoteById(noteId: number): Promise<NoteWithRelations | n
 
   return transformedData as unknown as NoteWithRelations;
 }
+
+export async function getLatestNotes(limit: number = 5): Promise<NoteWithRelations[]> {
+  const { data, error } = await supabase
+    .from('notes')
+    .select(`
+      id,
+      topic_title,
+      created_at,
+      subjects (name),
+      chapters (name)
+    `)
+    .eq('is_published', true)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching latest notes:', error);
+    return [];
+  }
+
+  const transformedData = data.map(note => ({
+    ...note,
+    subject_name: note.subjects!.name,
+    chapter_name: note.chapters?.name ?? null,
+  }));
+  
+  return transformedData as unknown as NoteWithRelations[];
+}

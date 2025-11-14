@@ -26,7 +26,7 @@ export default async function SubjectsPage() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center text-center py-20 bg-card rounded-lg border">
+        <div className="flex flex-col items-center justify-center text-center py-20 bg-card border-2">
           <h2 className="text-xl font-semibold text-foreground">No Subjects Found</h2>
           <p className="text-muted-foreground mt-2">Subjects are being prepared. Please check back later.</p>
         </div>

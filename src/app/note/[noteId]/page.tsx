@@ -80,7 +80,7 @@ export default function NotePage() {
   return (
     <div className="flex flex-col">
       <article className="p-0 flex flex-col">
-        <header className="border-b p-6 sm:p-8">
+        <header className="border-b-2 p-6 sm:p-8">
           <div className="text-sm text-muted-foreground tracking-wide uppercase">
             <Link href={`/subject/${encodeURIComponent(note.subject_name)}`} className="hover:text-foreground transition-colors">
                 {note.subject_name}
@@ -99,7 +99,7 @@ export default function NotePage() {
                 {images.map((image) => (
                     <Dialog key={image.id}>
                         <DialogTrigger asChild>
-                            <div className="cursor-pointer overflow-hidden rounded-lg border hover:ring-2 ring-primary transition-all">
+                            <div className="cursor-pointer overflow-hidden border-2 hover:ring-2 ring-primary transition-all">
                                 <Image
                                 src={image.image_url}
                                 alt={`Note image for ${note.topic_title}`}
@@ -117,7 +117,7 @@ export default function NotePage() {
                             <DialogDescription className="sr-only">An enlarged, fullscreen view of the note image for {note.topic_title}.</DialogDescription>
                             
                             <DialogClose asChild className="absolute top-4 right-4 z-50">
-                                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-black/50 hover:bg-black/70 text-white hover:text-white">
+                                <Button variant="ghost" size="icon" className="h-12 w-12 bg-black/50 hover:bg-black/70 text-white hover:text-white">
                                     <X className="h-8 w-8" />
                                 </Button>
                             </DialogClose>
@@ -178,7 +178,7 @@ export default function NotePage() {
                 {embeds.map((embed) => {
                     const embedUrl = getGoogleDriveEmbedUrl(embed.embed_url);
                     return (
-                        <div key={embed.id} className="overflow-hidden rounded-lg border aspect-video">
+                        <div key={embed.id} className="overflow-hidden border-2 aspect-video">
                            <iframe
                             src={embedUrl}
                             width="100%"

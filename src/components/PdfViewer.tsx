@@ -74,7 +74,7 @@ export function PdfViewer({ pdfId, documentUrl, fileName }: AdobeViewerProps) {
   }, [documentUrl, fileName, divId]);
 
   return (
-    <div className="relative w-full h-[800px] border rounded-lg overflow-hidden bg-card">
+    <div className="relative w-full h-[800px] border-2 bg-card">
       {loading && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card">
           <Loader />

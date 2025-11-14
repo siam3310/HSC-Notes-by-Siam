@@ -302,7 +302,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
 
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <Card>
+            <Card className='border-2'>
                 <CardHeader>
                     <CardTitle>Core Details</CardTitle>
                 </CardHeader>
@@ -314,7 +314,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                             <FormItem>
                                 <FormLabel>Subject</FormLabel>
                                 <Select onValueChange={(value) => field.onChange(Number(value))} value={field.value ? String(field.value) : undefined}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select a subject" /></SelectTrigger></FormControl>
+                                <FormControl><SelectTrigger className='border-2'><SelectValue placeholder="Select a subject" /></SelectTrigger></FormControl>
                                 <SelectContent>
                                     {subjects.map(subject => <SelectItem key={subject.id} value={String(subject.id)}>{subject.name}</SelectItem>)}
                                 </SelectContent>
@@ -329,7 +329,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                             <FormItem>
                                 <FormLabel>Chapter (Optional)</FormLabel>
                                 <Select onValueChange={(value) => field.onChange(value === '0' ? null : Number(value))} value={String(field.value ?? '0')} disabled={!selectedSubjectId}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder={!selectedSubjectId ? "First select a subject" : "Select a chapter"} /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger className='border-2'><SelectValue placeholder={!selectedSubjectId ? "First select a subject" : "Select a chapter"} /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="0">No Chapter</SelectItem>
                                         {chaptersForSelectedSubject.map(chapter => <SelectItem key={chapter.id} value={String(chapter.id)}>{chapter.name}</SelectItem>)}
@@ -345,7 +345,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Topic Title</FormLabel>
-                            <FormControl><Input placeholder="e.g., Motion in a Straight Line" {...field} /></FormControl>
+                            <FormControl><Input placeholder="e.g., Motion in a Straight Line" {...field} className='border-2'/></FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -355,7 +355,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Display Order</FormLabel>
-                            <FormControl><Input type="number" placeholder="0" {...field} /></FormControl>
+                            <FormControl><Input type="number" placeholder="0" {...field} className='border-2'/></FormControl>
                             <FormDescription>Lower numbers appear first. Default is 0.</FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -366,7 +366,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Content (Optional)</FormLabel>
-                            <FormControl><Textarea placeholder="Start writing your note here..." className="min-h-[200px]" {...field} value={field.value || ''} /></FormControl>
+                            <FormControl><Textarea placeholder="Start writing your note here..." className="min-h-[200px] border-2" {...field} value={field.value || ''} /></FormControl>
                             <FormDescription>Add optional text content for the note.</FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -376,7 +376,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
             </Card>
 
             {/* Images Section */}
-            <Card>
+            <Card className='border-2'>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><FileImage className="h-5 w-5 text-muted-foreground"/> Images (Optional)</CardTitle>
                 </CardHeader>
@@ -385,7 +385,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                             {note.images.filter(img => !imagesToDelete.includes(img.id)).map(image => (
                                 <div key={image.id} className="relative group">
-                                    <Image src={image.image_url} alt="Current note image" width={200} height={200} className="rounded-md object-cover aspect-square"/>
+                                    <Image src={image.image_url} alt="Current note image" width={200} height={200} className="object-cover aspect-square"/>
                                     <div className="absolute top-1 right-1">
                                         <Button type="button" variant="destructive" size="icon" className="h-7 w-7 opacity-80 group-hover:opacity-100" onClick={() => setImagesToDelete(prev => [...prev, image.id])}>
                                             <Trash2 className="h-4 w-4"/>
@@ -398,28 +398,28 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                     <div className="space-y-2">
                         <FormLabel>Add new images</FormLabel>
                          <div className="flex gap-2">
-                            <Input type="url" placeholder="Paste an image URL" value={imageUrlInput} onChange={(e) => setImageUrlInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUrl('image'); }}} disabled={isSubmitting} />
+                            <Input type="url" placeholder="Paste an image URL" value={imageUrlInput} onChange={(e) => setImageUrlInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUrl('image'); }}} disabled={isSubmitting} className='border-2' />
                             <Button type="button" variant="outline" onClick={() => addUrl('image')} disabled={isSubmitting || !imageUrlInput}><PlusCircle className="h-4 w-4 mr-2" /> Add URL</Button>
                         </div>
                         <FormControl>
-                            <Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} multiple onChange={(e) => handleFileSelection(e, 'image')} disabled={isSubmitting} className="h-auto p-2" />
+                            <Input type="file" accept={ACCEPTED_IMAGE_TYPES.join(',')} multiple onChange={(e) => handleFileSelection(e, 'image')} disabled={isSubmitting} className="h-auto p-2 border-2" />
                         </FormControl>
                     </div>
                      <div className="space-y-2">
-                        {newImageUrls.map(p => (<div key={p.id} className="flex items-center gap-4 p-3 border rounded-md bg-secondary/50"><LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" /><span className="text-sm font-medium flex-grow truncate">{p.url}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeUrl(p.id, 'image')}><X className="h-4 w-4"/></Button></div>))}
+                        {newImageUrls.map(p => (<div key={p.id} className="flex items-center gap-4 p-3 border-2 rounded-md bg-secondary/50"><LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" /><span className="text-sm font-medium flex-grow truncate">{p.url}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeUrl(p.id, 'image')}><X className="h-4 w-4"/></Button></div>))}
                         {imageUploads.map(upload => <FileUploadProgress key={upload.id} upload={upload} onRemove={() => removeUpload(upload.id, 'image')}/>)}
                     </div>
                 </CardContent>
             </Card>
 
             {/* PDF Section */}
-            <Card>
+            <Card className='border-2'>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-muted-foreground"/> PDF Documents (Optional)</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {isEditMode && note?.pdfs?.filter(pdf => !pdfsToDelete.includes(pdf.id)).map(pdf => (
-                        <div key={pdf.id} className="flex items-center gap-4 p-3 border rounded-md bg-secondary/50 group">
+                        <div key={pdf.id} className="flex items-center gap-4 p-3 border-2 rounded-md bg-secondary/50 group">
                             <LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             <a href={pdf.pdf_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{pdf.pdf_url}</a>
                             <Button type="button" variant="ghost" size="icon" className="h-7 w-7 opacity-50 group-hover:opacity-100" onClick={() => setPdfsToDelete(prev => [...prev, pdf.id])}><Trash2 className="h-4 w-4 text-destructive"/></Button>
@@ -428,28 +428,28 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                     <div className="space-y-2">
                         <FormLabel>Add new PDFs</FormLabel>
                         <div className="flex gap-2">
-                            <Input type="url" placeholder="Paste a direct PDF URL" value={pdfUrlInput} onChange={(e) => setPdfUrlInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUrl('pdf'); }}} disabled={isSubmitting} />
+                            <Input type="url" placeholder="Paste a direct PDF URL" value={pdfUrlInput} onChange={(e) => setPdfUrlInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUrl('pdf'); }}} disabled={isSubmitting} className='border-2' />
                             <Button type="button" variant="outline" onClick={() => addUrl('pdf')} disabled={isSubmitting || !pdfUrlInput}><PlusCircle className="h-4 w-4 mr-2" /> Add URL</Button>
                         </div>
                         <FormControl>
-                            <Input type="file" accept={ACCEPTED_PDF_TYPE} multiple onChange={(e) => handleFileSelection(e, 'pdf')} disabled={isSubmitting} className="h-auto p-2" />
+                            <Input type="file" accept={ACCEPTED_PDF_TYPE} multiple onChange={(e) => handleFileSelection(e, 'pdf')} disabled={isSubmitting} className="h-auto p-2 border-2" />
                         </FormControl>
                     </div>
                     <div className="space-y-2">
-                        {newPdfUrls.map(p => (<div key={p.id} className="flex items-center gap-4 p-3 border rounded-md bg-secondary/50"><LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" /><span className="text-sm font-medium flex-grow truncate">{p.url}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeUrl(p.id, 'pdf')}><X className="h-4 w-4"/></Button></div>))}
+                        {newPdfUrls.map(p => (<div key={p.id} className="flex items-center gap-4 p-3 border-2 rounded-md bg-secondary/50"><LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" /><span className="text-sm font-medium flex-grow truncate">{p.url}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeUrl(p.id, 'pdf')}><X className="h-4 w-4"/></Button></div>))}
                         {pdfUploads.map(upload => <FileUploadProgress key={upload.id} upload={upload} onRemove={() => removeUpload(upload.id, 'pdf')}/>)}
                     </div>
                 </CardContent>
             </Card>
 
             {/* Embed Section */}
-            <Card>
+            <Card className='border-2'>
                 <CardHeader>
                      <CardTitle className="flex items-center gap-2"><Code className="h-5 w-5 text-muted-foreground"/> Embed Links (Optional)</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      {isEditMode && note?.embeds?.filter(embed => !embedsToDelete.includes(embed.id)).map(embed => (
-                        <div key={embed.id} className="flex items-center gap-4 p-3 border rounded-md bg-secondary/50 group">
+                        <div key={embed.id} className="flex items-center gap-4 p-3 border-2 rounded-md bg-secondary/50 group">
                             <LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             <a href={embed.embed_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium hover:underline flex-grow truncate">{embed.embed_url}</a>
                             <Button type="button" variant="ghost" size="icon" className="h-7 w-7 opacity-50 group-hover:opacity-100" onClick={() => setEmbedsToDelete(prev => [...prev, embed.id])}><Trash2 className="h-4 w-4 text-destructive"/></Button>
@@ -458,22 +458,22 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                     <div className="space-y-2">
                         <FormLabel>Add new embed links</FormLabel>
                          <div className="flex gap-2">
-                            <Input type="url" placeholder="e.g., Google Drive folder link" value={embedUrlInput} onChange={(e) => setEmbedUrlInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUrl('embed'); }}} disabled={isSubmitting} />
+                            <Input type="url" placeholder="e.g., Google Drive folder link" value={embedUrlInput} onChange={(e) => setEmbedUrlInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUrl('embed'); }}} disabled={isSubmitting} className='border-2' />
                             <Button type="button" variant="outline" onClick={() => addUrl('embed')} disabled={isSubmitting || !embedUrlInput}><PlusCircle className="h-4 w-4 mr-2" /> Add URL</Button>
                         </div>
                     </div>
                      <div className="space-y-2">
-                        {newEmbedUrls.map(p => (<div key={p.id} className="flex items-center gap-4 p-3 border rounded-md bg-secondary/50"><LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" /><span className="text-sm font-medium flex-grow truncate">{p.url}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeUrl(p.id, 'embed')}><X className="h-4 w-4"/></Button></div>))}
+                        {newEmbedUrls.map(p => (<div key={p.id} className="flex items-center gap-4 p-3 border-2 rounded-md bg-secondary/50"><LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" /><span className="text-sm font-medium flex-grow truncate">{p.url}</span><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeUrl(p.id, 'embed')}><X className="h-4 w-4"/></Button></div>))}
                     </div>
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className='border-2'>
                 <CardContent className="p-4 sm:p-6">
                     <FormField
                         control={form.control} name="is_published"
                         render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/50 p-4">
+                        <FormItem className="flex flex-row items-center justify-between border-2 bg-secondary/50 p-4">
                             <div className="space-y-0.5">
                                 <FormLabel className="text-base">Publish Status</FormLabel>
                                 <p className="text-sm text-muted-foreground">Make this note visible to all users.</p>
@@ -485,7 +485,7 @@ export function NoteForm({ note, subjects, chapters }: NoteFormProps) {
                 </CardContent>
             </Card>
 
-            <div className="flex justify-end gap-2 sticky bottom-0 bg-background py-4 px-2 border-t">
+            <div className="flex justify-end gap-2 sticky bottom-0 bg-background py-4 px-2 border-t-2">
                 <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting} className="w-32">
                     {isSubmitting ? <Loader /> : isEditMode ? 'Update Note' : 'Create Note'}

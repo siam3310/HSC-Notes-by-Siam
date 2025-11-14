@@ -23,10 +23,10 @@ export function Header() {
         <div className="flex justify-between items-center py-2">
           <Link
             href="/"
-            className="flex items-center gap-2 text-2xl text-foreground bg-secondary px-3 py-1 rounded-lg"
+            className="flex items-center gap-2 text-2xl text-foreground bg-secondary px-3 py-1"
           >
             <BookText className="h-6 w-6 text-primary"/>
-            <h1>HSC Notes</h1>
+            <h1>HSC ICT Notes</h1>
           </Link>
 
           {/* Desktop Navigation */}
@@ -65,13 +65,13 @@ export function Header() {
         <nav className="flex flex-col gap-1 p-4">
           <Link
             href="/"
-            className="text-muted-foreground hover:text-foreground transition-colors text-lg p-3 rounded-md hover:bg-secondary"
+            className="text-muted-foreground hover:text-foreground transition-colors text-lg p-3 hover:bg-secondary"
           >
             Home
           </Link>
           <Link
             href="/subjects"
-            className="text-muted-foreground hover:text-foreground transition-colors text-lg p-3 rounded-md hover:bg-secondary"
+            className="text-muted-foreground hover:text-foreground transition-colors text-lg p-3 hover:bg-secondary"
           >
             Subjects
           </Link>
