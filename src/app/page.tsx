@@ -1,12 +1,12 @@
 import { getLatestNotes } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { ArrowRight, BookCopy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default async function Home() {
-  const latestNotes = await getLatestNotes();
+  const latestNotes = await getLatestNotes(5);
 
   return (
     <div className="flex flex-col items-center justify-center text-center space-y-12 flex-grow">
@@ -58,9 +58,9 @@ export default async function Home() {
                     </CardTitle>
                     <CardDescription className="pt-2">{note.chapter_name || 'General'}</CardDescription>
                   </CardHeader>
-                  <div className="p-6 pt-0">
+                  <CardFooter>
                     <Badge variant="secondary">{note.subject_name}</Badge>
-                  </div>
+                  </CardFooter>
                 </Card>
               </Link>
             ))}
