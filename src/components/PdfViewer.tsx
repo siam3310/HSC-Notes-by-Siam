@@ -31,13 +31,24 @@ export function PdfViewer({ pdfId, documentUrl, fileName }: AdobeViewerProps) {
             divId: divId,
         });
 
-        const viewPromise = adobeDCView.previewFile({
-            content: { location: { url: documentUrl } },
-            metaData: { fileName: fileName || 'document.pdf' },
-        }, {
-            embedMode: "SIZED_CONTAINER",
+        const previewConfig = {
+            embedMode: "SIZED_CONTAINER" as const,
             showAnnotationTools: false,
-        });
+        };
+
+        const content = { 
+          promise: fetch(documentUrl)
+            .then(res => res.arrayBuffer())
+            .catch(err => { 
+                console.error(`Failed to fetch PDF from ${documentUrl}:`, err);
+                // Return an empty buffer or throw to be caught by the outer catch
+                return new ArrayBuffer(0);
+            })
+        };
+        
+        const metaData = { fileName: fileName || 'document.pdf' };
+        
+        const viewPromise = adobeDCView.previewFile({ content, metaData }, previewConfig);
 
         viewPromise.then(() => {
             setLoading(false);
@@ -69,6 +80,11 @@ export function PdfViewer({ pdfId, documentUrl, fileName }: AdobeViewerProps) {
 
         return () => {
            document.removeEventListener("adobe_dc_view_sdk.ready", initViewer);
+           // Try to clean up the script tag
+           const existingScript = document.querySelector(`script[src="${ADOBE_SDK_URL}"]`);
+           if (existingScript) {
+             // document.body.removeChild(existingScript);
+           }
         };
     }
   }, [documentUrl, fileName, divId]);

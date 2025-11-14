@@ -153,7 +153,7 @@ export default function NotePage() {
                   <div key={pdf.id} className="space-y-4">
                     <PdfViewer
                       pdfId={pdf.id}
-                      documentUrl={`/api/pdf-proxy?url=${encodeURIComponent(pdf.pdf_url)}`}
+                      documentUrl={pdf.pdf_url}
                       fileName={`${note.topic_title}.pdf`}
                     />
                     <Button asChild>
