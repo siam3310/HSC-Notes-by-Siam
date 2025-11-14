@@ -33,7 +33,7 @@ export default async function Home() {
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3">
               <BookCopy className="h-7 w-7 text-primary" />
-              Recently Added Notes
+              Recent
             </h2>
              <Link href="/subjects" passHref>
                 <Button variant="ghost">
