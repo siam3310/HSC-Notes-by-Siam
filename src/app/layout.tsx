@@ -4,13 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { AppLayout } from '@/components/AppLayout';
 
 export const metadata: Metadata = {
-<<<<<<< HEAD
   title: 'HSC ICT Notes',
   description: 'A comprehensive collection of ICT study notes for HSC students.',
-=======
-  title: 'HSC Notes',
-  description: 'A comprehensive collection of study notes for HSC students. Made with love by Mahamudun Nabi Siam',
->>>>>>> 69f9b2c3d253caa8a420b96f43fb67ea646798a0
 };
 
 export default function RootLayout({
